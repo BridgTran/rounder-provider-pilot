@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/corporate")({
             { title: "Scholarship Provider Dashboard — ROUNDER HQ" },
             {
                 name: "description",
-                content: "Filter anonymized Australian candidates by grit, life context and competencies — unlock matches with Match Credits.",
+                content: "Filter anonymized Australian candidates by structured eligibility criteria — unlock matches with Match Credits.",
             },
             { property: "og:title", content: "Scholarship Provider Dashboard — ROUNDER HQ" },
             {
@@ -130,8 +130,9 @@ function CorporateHub() {
     const queryClient = useQueryClient();
     const [caseStudy, setCaseStudy] = useState<DrawerCandidate | null>(null);
     const [lifeLoad, setLifeLoad] = useState<Set<string>>(new Set());
-    const [empathy, setEmpathy] = useState(70);
-    const [resilience, setResilience] = useState(80);
+    // Vector B, deferred until post-pilot: Client Empathy / Pressure Resilience sliders were
+    // removed from the filters and from the ranking criteria. Pilot matching uses structured
+    // eligibility criteria only; the fund min_empathy/min_resilience columns and types stay.
     const [targetGpa, setTargetGpa] = useState(85);
     const [selectedDisciplines, setSelectedDisciplines] = useState<Set<string>>(new Set());
     const [visa, setVisa] = useState("Any Status");
@@ -197,15 +198,11 @@ function CorporateHub() {
             setActiveFundId(null);
             setSelectedDisciplines(new Set());
             setLifeLoad(new Set());
-            setEmpathy(70);
-            setResilience(80);
             return;
         }
         setActiveFundId(fund.id);
         setSelectedDisciplines(fund.discipline && fund.discipline !== "All Disciplines" ? new Set([fund.discipline]) : new Set());
         setLifeLoad(new Set(fund.lifeLoad));
-        setEmpathy(fund.minEmpathy);
-        setResilience(fund.minResilience);
     };
     // Every filter widget feeds the IRTO engine; results re-rank instantly.
     const ranked = useMemo(() => {
@@ -219,13 +216,11 @@ function CorporateHub() {
             },
             preferred: {
                 adjustedGpa: targetGpa,
-                clientEmpathy: empathy,
-                pressureResilience: resilience,
                 ...(lifeLoad.size ? { equityTags: Array.from(lifeLoad) } : {}),
             },
         };
         return rankCandidates(appliedFund ? students.filter((s) => eligibleQuery.data?.includes(s.id)) : students, criteria);
-    }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, empathy, resilience, lifeLoad, appliedFund, eligibleQuery.data]);
+    }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, lifeLoad, appliedFund, eligibleQuery.data]);
     const studentByCode = (code: string) => students.find((s) => s.candidateCode === code);
     const matchFor = (code: string) => {
         const student = studentByCode(code);
@@ -337,7 +332,7 @@ function CorporateHub() {
       <div className="grid gap-8 pt-2 lg:grid-cols-4 lg:gap-10">
         {/* Sidebar filters */}
         <aside className={`h-fit rounded-lg border p-6 lg:sticky lg:top-36 ${"border-charcoal/20 bg-card text-charcoal"}`}>
-          <h2 className={`text-lg ${"text-charcoal"}`}>⚡ Filter by Grit &amp; Context</h2>
+          <h2 className={`text-lg ${"text-charcoal"}`}>⚡ Filter by Eligibility &amp; Context</h2>
           <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
             IRTO engine re-ranks the feed on every change.
           </p>
@@ -366,8 +361,6 @@ function CorporateHub() {
           <div className="mt-6 space-y-5">
             <p className={`eyebrow ${"text-charcoal"}`}>Core Competencies</p>
             <FilterSlider label="Target Adjusted GPA" value={targetGpa} onChange={setTargetGpa} editorial={true}/>
-            <FilterSlider label="Client Empathy" value={empathy} onChange={setEmpathy} editorial={true}/>
-            <FilterSlider label="Resilience" value={resilience} onChange={setResilience} editorial={true}/>
           </div>
         </aside>
 
@@ -379,7 +372,7 @@ function CorporateHub() {
             </h2>
             <span className={`flex items-center gap-2 text-xs font-medium ${"text-muted-foreground"}`}>
               <span className="pulse inline-block h-2 w-2 rounded-full bg-lime"/> {ranked.length}{" "}
-              matched · ranked by Grit Fit
+              matched · ranked by eligibility fit
             </span>
           </div>
 
@@ -426,7 +419,9 @@ function CorporateHub() {
                   {c.traits.map((t) => (<span key={t} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${"bg-secondary text-secondary-foreground"}`}>
                       {t}
                     </span>))}
-                  {result.frontlineBoost && (<span className="rounded-full bg-lime/20 px-2.5 py-1 text-xs font-black text-charcoal">
+                  {/* Vector B, deferred until post-pilot: the frontline boost modifies soft-skill
+                      scores, which are excluded from pilot matching. */}
+                  {false && result.frontlineBoost && (<span className="rounded-full bg-lime/20 px-2.5 py-1 text-xs font-black text-charcoal">
                       ⚡ Frontline pressure boost
                     </span>)}
                 </div>

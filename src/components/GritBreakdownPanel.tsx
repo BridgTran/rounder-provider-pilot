@@ -144,7 +144,7 @@ export function GritBreakdownPanel({
       <Button
         type="button"
         variant="ghost"
-        aria-label={`Open ${displayedScore}% Grit Score breakdown`}
+        aria-label={`Open ${displayedScore}% Eligibility Fit breakdown`}
         aria-expanded={open}
         onMouseEnter={keepOpen}
         onMouseLeave={closeSoon}
@@ -176,7 +176,7 @@ export function GritBreakdownPanel({
         <span className="flex w-full flex-row items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className={`whitespace-nowrap text-[10px] font-black uppercase tracking-wide ${onDark ? "text-white/75" : "text-charcoal/70"}`}>
-              Grit Match Fit
+              Eligibility Fit
             </span>
             {helpTrigger}
           </span>
@@ -188,7 +188,7 @@ export function GritBreakdownPanel({
         <span className="inline-flex min-w-max flex-col items-end text-right leading-none">
           <span className="flex items-center justify-end gap-1.5">
             <span className={`text-[10px] font-black uppercase ${onDark ? "text-white/75" : "text-charcoal/70"}`}>
-              Grit Match Fit
+              Eligibility Fit
             </span>
             {helpTrigger}
           </span>
@@ -252,7 +252,9 @@ export function GritBreakdownPanel({
             </div>
           </section>
 
-          <section className={`border-t pt-5 ${dark ? "border-charcoal-foreground/15" : "border-charcoal/15"}`}>
+          {/* Vector B, deferred until post-pilot: the Soft-Skill Proximity Matrix is hidden
+              because pilot matching uses structured eligibility criteria only. Do not delete. */}
+          <section hidden className={`border-t pt-5 ${dark ? "border-charcoal-foreground/15" : "border-charcoal/15"}`}>
             <h3 className={`text-sm font-black ${dark ? "text-charcoal-foreground" : "text-charcoal"}`}>🧠 Soft-Skill Proximity Matrix</h3>
             <div className="mt-4 space-y-4">
               <Meter label="Client Empathy Pipeline" value={result.softSkills.clientEmpathy} dark={dark} />
