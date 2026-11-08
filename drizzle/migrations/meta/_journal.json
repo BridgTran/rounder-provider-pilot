@@ -50,6 +50,13 @@
       "when": 1794134353007,
       "tag": "0006_support_new_fund_creation",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794178774838,
+      "tag": "0007_provider_organisation_access",
+      "breakpoints": true
     }
   ]
 }
