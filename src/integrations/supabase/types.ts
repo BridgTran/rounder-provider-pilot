@@ -88,9 +88,87 @@ export type Database = {
         }
         Relationships: []
       }
+      scholarship_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          fund_id: string
+          id: string
+          provider_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          fund_id: string
+          id?: string
+          provider_id: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          fund_id?: string
+          id?: string
+          provider_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholarship_audit_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scholarship_rule_versions: {
+        Row: {
+          created_at: string
+          fund_id: string
+          id: string
+          provider_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          fund_id: string
+          id?: string
+          provider_id: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          fund_id?: string
+          id?: string
+          provider_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholarship_rule_versions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scholarships: {
         Row: {
           created_at: string
+          deed_confirmed_at: string | null
+          deed_path: string | null
           discipline: string
           finalist_requirements: string[]
           id: string
@@ -100,11 +178,16 @@ export type Database = {
           min_resilience: number
           org_class: string
           provider_id: string
+          rule_version: number
+          rules: Json
+          status: string
           stipend_aud: number | null
           title: string
         }
         Insert: {
           created_at?: string
+          deed_confirmed_at?: string | null
+          deed_path?: string | null
           discipline?: string
           finalist_requirements?: string[]
           id?: string
@@ -114,11 +197,16 @@ export type Database = {
           min_resilience?: number
           org_class?: string
           provider_id: string
+          rule_version?: number
+          rules?: Json
+          status?: string
           stipend_aud?: number | null
           title: string
         }
         Update: {
           created_at?: string
+          deed_confirmed_at?: string | null
+          deed_path?: string | null
           discipline?: string
           finalist_requirements?: string[]
           id?: string
@@ -128,10 +216,54 @@ export type Database = {
           min_resilience?: number
           org_class?: string
           provider_id?: string
+          rule_version?: number
+          rules?: Json
+          status?: string
           stipend_aud?: number | null
           title?: string
         }
         Relationships: []
+      }
+      student_eligibility: {
+        Row: {
+          centrelink_concession: boolean | null
+          first_generation: boolean | null
+          household_income: number | null
+          institution: string | null
+          postcode: string | null
+          region: string | null
+          state: string | null
+          student_id: string
+        }
+        Insert: {
+          centrelink_concession?: boolean | null
+          first_generation?: boolean | null
+          household_income?: number | null
+          institution?: string | null
+          postcode?: string | null
+          region?: string | null
+          state?: string | null
+          student_id: string
+        }
+        Update: {
+          centrelink_concession?: boolean | null
+          first_generation?: boolean | null
+          household_income?: number | null
+          institution?: string | null
+          postcode?: string | null
+          region?: string | null
+          state?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_eligibility_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_identities: {
         Row: {
@@ -321,6 +453,12 @@ export type Database = {
     Functions: {
       accept_match: { Args: { p_candidate_code: string }; Returns: undefined }
       create_student_invite: { Args: { p_token_hash: string }; Returns: string }
+      eligible_scholarship_students: {
+        Args: { p_discipline: string; p_life_load: string[]; p_rules: Json }
+        Returns: {
+          student_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -354,6 +492,26 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_scholarship_rules: {
+        Args: {
+          p_activate: boolean
+          p_confirmed: boolean
+          p_expected_version: number
+          p_fund_id: string
+          p_input: Json
+        }
+        Returns: Json
+      }
+      save_scholarship_rules_internal: {
+        Args: {
+          p_activate: boolean
+          p_confirmed: boolean
+          p_expected_version: number
+          p_fund_id: string
+          p_input: Json
+        }
+        Returns: Json
       }
       student_invite_action: {
         Args: { p_action: string; p_payload?: Json; p_token: string }

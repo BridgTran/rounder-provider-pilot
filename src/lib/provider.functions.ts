@@ -11,6 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { StudentProfile, StudyMode, WorkSector } from "./irto";
+import { fundRulesSchema, emptyFundRules, type FundRules } from "./fund-schema";
 
 /* ------------------------------------------------------------- row mapping */
 
@@ -77,6 +78,10 @@ export const listStudents = createServerFn({ method: "GET" })
   });
 
 export interface ScholarshipFund {
+  rules: FundRules;
+  status: "draft" | "active";
+  version: number;
+  deedPath: string | null;
   id: string;
   title: string;
   orgClass: string;
@@ -157,6 +162,10 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
       contactPerson: profileRes.data?.contact_person ?? "",
       credits: creditsRes.data?.balance ?? 0,
       scholarships: (scholarshipsRes.data ?? []).map((s) => ({
+        rules: fundRulesSchema.safeParse(s.rules).success ? fundRulesSchema.parse(s.rules) : emptyFundRules(),
+        status: s.status === "active" ? "active" : "draft",
+        version: s.rule_version,
+        deedPath: s.deed_path,
         id: s.id,
         title: s.title,
         orgClass: s.org_class,
@@ -202,23 +211,4 @@ export interface PublishScholarshipInput {
   minResilience: number;
   discipline: string;
 }
-
-export const createScholarshipFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: PublishScholarshipInput) => input)
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("scholarships").insert({
-      provider_id: context.userId,
-      title: data.title,
-      org_class: data.orgClass,
-      location: data.location,
-      stipend_aud: data.stipendAud,
-      finalist_requirements: data.finalistRequirements,
-      life_load: data.lifeLoad,
-      min_empathy: data.minEmpathy,
-      min_resilience: data.minResilience,
-      discipline: data.discipline,
-    });
-    if (error) throw new Error(error.message);
-  });
 

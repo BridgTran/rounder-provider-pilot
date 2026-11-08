@@ -11,6 +11,10 @@
 
 ## Architecture
 
+- Scholarship writes use an owner-scoped transactional RPC with optimistic version checks; triggers snapshot every save into immutable versions and audit entries. Why: direct writes must not bypass deed confirmation or overwrite history.
+- Eligibility matching uses a protected RPC and private student eligibility details; missing restricted data is excluded, while IRTO still ranks the eligible pool. Why: counts must not infer geography or income from anonymized labels.
+- Deed PDFs use immutable provider-prefixed objects in private storage; short-lived signed links are owner-authorized. Why: historical versions must retain their original private document.
+
 - Provider data is authenticated-only; student PII remains protected by accepted-match RLS, and provider-only credit spending remains atomic through request_match. Why: removing the shared wallet must not bypass the existing per-provider unlock charge.
 - The authenticated provider workspace remains at /corporate; / resolves to provider sign-in or workspace, while /invite/$token is the only student surface. Why: private invitations replace public student browsing without breaking provider URLs.
 - Student invitation secrets are generated server-side, stored only as hashes, and checked inside a narrowly scoped transactional RPC for consent, intake, per-match decisions and cascading deletion. Why: candidate codes and client state must never authorize student actions.

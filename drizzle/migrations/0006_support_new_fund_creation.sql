@@ -1,0 +1,5 @@
+ALTER FUNCTION public.save_scholarship_rules(uuid,integer,jsonb,boolean,boolean) RENAME TO save_scholarship_rules_internal;
+REVOKE ALL ON FUNCTION public.save_scholarship_rules_internal(uuid,integer,jsonb,boolean,boolean) FROM authenticated;
+CREATE FUNCTION public.save_scholarship_rules(p_fund_id uuid,p_expected_version integer,p_input jsonb,p_activate boolean,p_confirmed boolean) RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$ SELECT public.save_scholarship_rules_internal(nullif(p_fund_id,'00000000-0000-0000-0000-000000000000'::uuid),p_expected_version,p_input,p_activate,p_confirmed) $$;
+REVOKE ALL ON FUNCTION public.save_scholarship_rules(uuid,integer,jsonb,boolean,boolean) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.save_scholarship_rules(uuid,integer,jsonb,boolean,boolean) TO authenticated;
