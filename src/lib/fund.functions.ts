@@ -8,7 +8,7 @@ export const saveFund = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => fundSaveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { data: result, error } = await context.supabase.rpc("save_scholarship_rules", {
-      p_fund_id: data.id ?? undefined, p_expected_version: data.expectedVersion,
+      p_fund_id: data.id ?? "00000000-0000-0000-0000-000000000000", p_expected_version: data.expectedVersion,
       p_input: data, p_activate: data.activate, p_confirmed: data.confirmed,
     });
     if (error) throw new Error(error.message);
