@@ -138,7 +138,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
 
               <div>
                 <div className="grid items-center gap-3 sm:grid-cols-2"><p className="eyebrow text-charcoal">Life Load Matrices</p><Input aria-label="Life Load deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['lifeLoad'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, lifeLoad: e.target.value })} className={fundInputClass} /></div>
-                <div className="mt-3"><FundSelect id="lifeLoad-strength" label="Life Load strength" value={rules.strengths.lifeLoad ?? "Required"} onChange={(v) => updateRule("strengths", { ...rules.strengths, lifeLoad: v as "Required" | "Preferred" })} options={[{value:"Required",label:"Required"},{value:"Preferred",label:"Preferred"}]} /></div><div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3"><FundSelect id="lifeLoad-strength" label="Life Load strength" value={rules.strengths["lifeLoad"] ?? "Required"} onChange={(v) => updateRule("strengths", { ...rules.strengths, lifeLoad: v as "Required" | "Preferred" })} options={[{value:"Required",label:"Required"},{value:"Preferred",label:"Preferred"}]} /></div><div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {lifeLoadOptions.map((opt) => (<label key={opt.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-3 hover:border-lime/40">
                       <Checkbox checked={lifeLoad.has(opt.id)} onCheckedChange={() => toggleLifeLoad(opt.id)} id={opt.id}/>
                       <span className="text-xs font-semibold text-secondary-foreground">
@@ -159,7 +159,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
 
               <div>
                 <div className="grid items-center gap-3 sm:grid-cols-2"><p className="eyebrow text-charcoal">Academic Discipline Focus</p><Input aria-label="Discipline deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['discipline'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, discipline: e.target.value })} className={fundInputClass} /></div>
-                <div className="mt-3"><FundSelect id="discipline-strength" label="Discipline strength" value={rules.strengths.discipline ?? "Required"} onChange={(v) => updateRule("strengths", { ...rules.strengths, discipline: v as "Required" | "Preferred" })} options={[{value:"Required",label:"Required"},{value:"Preferred",label:"Preferred"}]} /></div><Select value={discipline} onValueChange={(v) => { setDiscipline(v); setConfirmed(false); }}>
+                <div className="mt-3"><FundSelect id="discipline-strength" label="Discipline strength" value={rules.strengths["discipline"] ?? "Required"} onChange={(v) => updateRule("strengths", { ...rules.strengths, discipline: v as "Required" | "Preferred" })} options={[{value:"Required",label:"Required"},{value:"Preferred",label:"Preferred"}]} /></div><Select value={discipline} onValueChange={(v) => { setDiscipline(v); setConfirmed(false); }}>
                   <SelectTrigger className="mt-3 w-full rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground">
                     <SelectValue placeholder="Select discipline"/>
                   </SelectTrigger>

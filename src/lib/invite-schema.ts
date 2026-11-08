@@ -1,6 +1,19 @@
 import { z } from "zod";
+import { australianStates, degreeLevels } from "./fund-schema";
 
 export const intakeSchema = z.object({
+  gender: z.enum(["", "female", "male", "non-binary"]).default(""),
+  degreeLevel: z.enum(["", ...degreeLevels]).default(""),
+  firstUndergraduateDegree: z.enum(["", "yes", "no"]).default(""),
+  yearsCompleted: z.number().min(0).max(20).nullable().default(null),
+  campusState: z.enum(["", ...australianStates]).default(""),
+  institution: z.string().max(200).default(""),
+  state: z.enum(["", ...australianStates]).default(""),
+  postcode: z.string().regex(/^(\d{4})?$/).default(""),
+  region: z.string().max(100).default(""),
+  householdIncome: z.number().int().nonnegative().nullable().default(null),
+  firstGeneration: z.enum(["", "yes", "no"]).default(""),
+  centrelink: z.enum(["", "yes", "no"]).default(""),
   legalName: z.string().trim().min(1).max(150),
   email: z.string().email().max(254),
   phone: z.string().max(40),

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { studentInviteAction } from "@/lib/invite.functions";
 import { intakeSchema } from "@/lib/invite-schema";
+import { australianStates, degreeLevels } from "@/lib/fund-schema";
+import { australianUniversities } from "@/lib/universities";
 
 const inviteOptions = (token: string) => queryOptions({ queryKey: ["student-invite", token], queryFn: () => studentInviteAction({ data: { token, action: "read" } }), retry: false });
 export const Route = createFileRoute("/invite/$token")({
@@ -28,6 +30,14 @@ const selections = [
   ["yearLevel", "Year level", ["1", "2", "3", "4", "5", "6"]],
   ["studyMode", "Study mode", ["Internal", "Online", "Hybrid"]],
   ["studyLoad", "Study load (%)", ["100", "75", "50", "25"]],
+  ["gender", "Gender (optional)", ["", "female", "male", "non-binary"]],
+  ["degreeLevel", "Degree level (optional)", ["", ...degreeLevels]],
+  ["firstUndergraduateDegree", "First undergraduate degree (optional)", ["", "yes", "no"]],
+  ["campusState", "Campus state (optional)", ["", ...australianStates]],
+  ["institution", "Institution (optional)", ["", ...australianUniversities]],
+  ["state", "Home state (optional)", ["", ...australianStates]],
+  ["firstGeneration", "First-generation (optional)", ["", "yes", "no"]],
+  ["centrelink", "Centrelink concession (optional)", ["", "yes", "no"]],
 ] as const;
 const equity = ["High External Workload 20+ hrs", "Primary Caretaker", "First-Gen Student", "Regional/Remote Background", "Low-SES Postcode"];
 
@@ -60,12 +70,13 @@ function StudentInvitation() {
       event.preventDefault();
       const fields = new FormData(event.currentTarget);
       const payload = Object.fromEntries(fields);
-      const parsed = intakeSchema.safeParse({ ...payload, rawGpa: Number(fields.get("rawGpa")), weeklyHours: Number(fields.get("weeklyHours")), yearLevel: Number(fields.get("yearLevel")), studyLoad: Number(fields.get("studyLoad")), birthYear: Number(fields.get("birthYear")), equityTags: fields.getAll("equityTags") });
+      const parsed = intakeSchema.safeParse({ ...payload, yearsCompleted: fields.get("yearsCompleted") ? Number(fields.get("yearsCompleted")) : null, householdIncome: fields.get("householdIncome") ? Number(fields.get("householdIncome")) : null, rawGpa: Number(fields.get("rawGpa")), weeklyHours: Number(fields.get("weeklyHours")), yearLevel: Number(fields.get("yearLevel")), studyLoad: Number(fields.get("studyLoad")), birthYear: Number(fields.get("birthYear")), equityTags: fields.getAll("equityTags") });
       if (!parsed.success) { setFormError(parsed.error.issues[0]?.message ?? "Check your answers."); return; }
       setFormError(""); action.mutate({ token, action: "intake", payload: parsed.data });
     }}>
       <div className="grid gap-5 sm:grid-cols-2">{[["legalName", "Full name", "text"], ["email", "Email", "email"], ["phone", "Phone (optional)", "tel"], ["degree", "Degree title", "text"], ["rawGpa", "GPA / marks out of 100", "number"], ["weeklyHours", "Weekly work and caring hours", "number"], ["birthYear", "Birth year", "number"]].map(([name, label, type]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label}</Label><Input id={name} name={name} type={type} required={name !== "phone"} min={name === "birthYear" ? 1900 : 0} max={name === "birthYear" ? new Date().getFullYear() : name === "rawGpa" ? 100 : name === "weeklyHours" ? 168 : undefined} step={name === "rawGpa" ? "0.1" : "1"} /></div>)}</div>
       <div className="grid gap-5 sm:grid-cols-2">{selections.map(([name, label, options]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label}</Label><select id={name} name={name} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{options.map((option) => <option key={option}>{option}</option>)}</select></div>)}</div>
+      <div className="grid gap-5 sm:grid-cols-2">{[["yearsCompleted","Years of study completed","number"],["householdIncome","Annual household income ($ AUD)","number"],["postcode","Home postcode","text"],["region","Home region","text"]].map(([name,label,type]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label} (optional)</Label><Input id={name} name={name} type={type} min="0" step={name === "yearsCompleted" ? "0.5" : "1"} /></div>)}</div>
       <fieldset className="space-y-3"><legend className="mb-3 font-medium">Life context (optional)</legend>{equity.map((tag) => <label key={tag} className="flex items-start gap-3 text-sm"><input type="checkbox" name="equityTags" value={tag} className="mt-1 accent-lime" />{tag}</label>)}</fieldset>
       {formError && <p role="alert" className="text-destructive">{formError}</p>}
       <Button type="submit" disabled={action.isPending}>{action.isPending ? "Saving…" : "Submit intake"}</Button>
