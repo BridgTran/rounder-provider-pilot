@@ -26,7 +26,7 @@ export function SiteHeader() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({ to: "/auth", search: { redirect: undefined }, replace: true });
   };
 
   return (
@@ -51,6 +51,7 @@ export function SiteHeader() {
           ) : (
             <Link
               to="/auth"
+              search={{ redirect: undefined }}
               className="rounded-md border border-lime/50 bg-lime/10 px-3 py-1.5 text-xs font-black text-lime transition hover:bg-lime hover:text-lime-foreground"
             >
               Provider Sign In
