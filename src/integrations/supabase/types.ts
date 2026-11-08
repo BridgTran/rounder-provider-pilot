@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           created_at: string
+          declined_at: string | null
           id: string
           provider_id: string
           status: string
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           created_at?: string
+          declined_at?: string | null
           id?: string
           provider_id: string
           status?: string
@@ -34,6 +36,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           created_at?: string
+          declined_at?: string | null
           id?: string
           provider_id?: string
           status?: string
@@ -162,6 +165,47 @@ export type Database = {
           },
         ]
       }
+      student_invites: {
+        Row: {
+          consent_version: string | null
+          consented_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          provider_id: string
+          student_id: string | null
+          token_hash: string
+        }
+        Insert: {
+          consent_version?: string | null
+          consented_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider_id: string
+          student_id?: string | null
+          token_hash: string
+        }
+        Update: {
+          consent_version?: string | null
+          consented_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider_id?: string
+          student_id?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           adaptability: number
@@ -252,12 +296,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       accept_match: { Args: { p_candidate_code: string }; Returns: undefined }
+      create_student_invite: { Args: { p_token_hash: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       list_student_requests: {
         Args: never
         Returns: {
@@ -272,6 +342,7 @@ export type Database = {
         Returns: {
           accepted_at: string | null
           created_at: string
+          declined_at: string | null
           id: string
           provider_id: string
           status: string
@@ -284,10 +355,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      student_invite_action: {
+        Args: { p_action: string; p_payload?: Json; p_token: string }
+        Returns: Json
+      }
       top_up_credits: { Args: { p_amount: number }; Returns: number }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "provider"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -414,6 +489,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "provider"],
+    },
   },
 } as const
