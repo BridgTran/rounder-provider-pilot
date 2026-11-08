@@ -36,6 +36,13 @@
       "when": 1794133960610,
       "tag": "0004_lock_private_invite_table_access",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794134173036,
+      "tag": "0005_versioned_scholarship_deed_rules",
+      "breakpoints": true
     }
   ]
 }
