@@ -503,6 +503,16 @@ export type Database = {
         }
         Returns: Json
       }
+      save_scholarship_rules_internal: {
+        Args: {
+          p_activate: boolean
+          p_confirmed: boolean
+          p_expected_version: number
+          p_fund_id: string
+          p_input: Json
+        }
+        Returns: Json
+      }
       student_invite_action: {
         Args: { p_action: string; p_payload?: Json; p_token: string }
         Returns: Json

@@ -43,6 +43,13 @@
       "when": 1794134173036,
       "tag": "0005_versioned_scholarship_deed_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794134353007,
+      "tag": "0006_support_new_fund_creation",
+      "breakpoints": true
     }
   ]
 }
