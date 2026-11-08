@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  handleMatchStateTransition,
-  useMatchState,
-  findMatchByProgram,
-  type MatchStatus,
-} from "@/lib/match-state";
+  acceptMatchFn,
+  listPublicStudents,
+  listStudentRequests,
+} from "@/lib/provider.functions";
+
+type MatchStatus = "passive" | "active" | "revealed";
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +16,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { GritBreakdownPanel } from "@/components/GritBreakdownPanel";
-import { candidatePool } from "@/lib/candidate-pool";
 import { calculateIrtoScore } from "@/lib/irto";
 import { StudentOnboardingWizard } from "@/components/StudentOnboardingWizard";
 import { useOnboarding, resetOnboarding } from "@/lib/student-profile-state";
@@ -383,35 +384,56 @@ function StoryModal({ onClose }: { onClose: () => void }) {
 
 function StudentView() {
   const [storyOpen, setStoryOpen] = useState(false);
-  const { matches, systemStatus } = useMatchState();
+  const queryClient = useQueryClient();
+  const requestsQuery = useQuery({
+    queryKey: ["student-requests"],
+    queryFn: () => listStudentRequests(),
+  });
+  const studentsQuery = useQuery({
+    queryKey: ["public-students"],
+    queryFn: () => listPublicStudents(),
+  });
+  const requests = requestsQuery.data ?? [];
+  const students = studentsQuery.data ?? [];
   const onboarding = useOnboarding();
   const liveScore = onboarding.result ? Math.round(onboarding.result.adjustedGpa) : 88;
 
-  const statusOf = (program: string): MatchStatus =>
-    findMatchByProgram(matches, program)?.status ?? "passive";
+  const acceptMutation = useMutation({
+    mutationFn: (candidateCode: string) => acceptMatchFn({ data: { candidateCode } }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["student-requests"] });
+      toast.success("Identity handshake complete", {
+        description: "Both parties are now unmasked. Secure P2P tunnel established.",
+      });
+    },
+    onError: (error) =>
+      toast.error("Could not accept match", { description: error.message }),
+  });
 
-  const revealedName = (program: string) =>
-    findMatchByProgram(matches, program)?.orgLegalName ?? null;
+  const requestFor = (program: string) => requests.find((r) => r.program === program);
+
+  const statusOf = (program: string): MatchStatus => {
+    const status = requestFor(program)?.status;
+    return status === "accepted" ? "revealed" : status === "pending" ? "active" : "passive";
+  };
+
+  const revealedName = (program: string) => {
+    const request = requestFor(program);
+    return request?.status === "accepted" ? request.organisation : null;
+  };
 
   const handleReveal = (program: string) => {
-    const result = handleMatchStateTransition({ type: "STUDENT_ACCEPT_REVEAL", program });
-    if (result.ok) toast.success(result.message, { description: result.detail });
-    else toast.error(result.message, { description: result.detail });
-  };
-
-  const simulateProviderRequest = (program: string) => {
-    const match = findMatchByProgram(matches, program);
-    if (!match) {
-      toast.error("No provider is tracking this opportunity yet.");
+    const request = requestFor(program);
+    if (!request) {
+      toast.error("No active request found for this opportunity.");
       return;
     }
-    const result = handleMatchStateTransition({
-      type: "ORG_REQUEST_MATCH",
-      candidateCode: match.candidateCode,
-    });
-    if (result.ok) toast(result.message, { description: result.detail });
-    else toast.error(result.message, { description: result.detail });
+    acceptMutation.mutate(request.candidateCode);
   };
+
+  const systemStatus = requests.some((r) => r.status === "accepted")
+    ? "Handshake Complete. Secure P2P communication tunnel established."
+    : null;
 
 
   return (
@@ -511,7 +533,7 @@ function StudentView() {
               {opportunities.map((o) => {
                 const status = statusOf(o.program);
                 const legalName = revealedName(o.program);
-                const candidate = candidatePool.find((item) => item.candidateCode === o.candidateCode);
+                const candidate = students.find((item) => item.candidateCode === o.candidateCode);
                 const breakdown = candidate ? calculateIrtoScore(candidate) : null;
                 return (
                 <article
@@ -601,14 +623,6 @@ function StudentView() {
                           verified transcript link are now shared with this provider.
                         </p>
                       </div>
-                    )}
-                    {status === "passive" && (
-                      <button
-                        onClick={() => simulateProviderRequest(o.program)}
-                        className="w-full rounded-lg border border-dashed border-charcoal/25 px-3 py-1.5 text-center text-[10px] font-bold tracking-wide text-charcoal/45 transition hover:border-lime hover:text-lime"
-                      >
-                        [Demo] Simulate provider match request
-                      </button>
                     )}
                   </div>
                 </article>

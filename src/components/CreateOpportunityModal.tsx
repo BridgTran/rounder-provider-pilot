@@ -18,11 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { PublishScholarshipInput } from "@/lib/provider.functions";
 
 const lifeLoadOptions = [
-  { id: "high-workload", label: "High External Workload (20+ hrs/week)" },
-  { id: "caretaker", label: "Primary Caretaker Responsibilities" },
-  { id: "regional", label: "Regional / Remote Context" },
+  { id: "high-workload", label: "High External Workload (20+ hrs/week)", tag: "High External Workload 20+ hrs" },
+  { id: "caretaker", label: "Primary Caretaker Responsibilities", tag: "Primary Caretaker" },
+  { id: "regional", label: "Regional / Remote Context", tag: "Regional/Remote Background" },
 ];
 
 const disciplines = ["All Disciplines", "Law", "Engineering", "Business", "Medicine", "Arts"];
@@ -69,13 +70,17 @@ interface CreateOpportunityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaign?: "graduate-employer" | "scholarship-provider";
+  /** Persist the fund to the provider's account. */
+  onPublish?: (input: PublishScholarshipInput) => Promise<void>;
 }
 
 export function CreateOpportunityModal({
   open,
   onOpenChange,
   campaign = "graduate-employer",
+  onPublish,
 }: CreateOpportunityModalProps) {
+  const [title, setTitle] = useState("");
   const [lifeLoad, setLifeLoad] = useState<Set<string>>(new Set());
   const [empathy, setEmpathy] = useState(70);
   const [resilience, setResilience] = useState(75);
@@ -84,6 +89,7 @@ export function CreateOpportunityModal({
   const [location, setLocation] = useState("");
   const [stipend, setStipend] = useState("");
   const [requirements, setRequirements] = useState<Set<string>>(new Set());
+  const [publishing, setPublishing] = useState(false);
 
   const toggleLifeLoad = (id: string) => {
     const next = new Set(lifeLoad);
@@ -97,11 +103,41 @@ export function CreateOpportunityModal({
     setRequirements(next);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
+    if (!title.trim()) {
+      toast.error("Give your fund a title first.");
+      return;
+    }
+    const input: PublishScholarshipInput = {
+      title: title.trim(),
+      orgClass: orgClass.trim(),
+      location: location.trim(),
+      stipendAud: stipend ? Number(stipend) : null,
+      finalistRequirements: finalistRequirements
+        .filter((r) => requirements.has(r.id))
+        .map((r) => r.label),
+      lifeLoad: lifeLoadOptions.filter((o) => lifeLoad.has(o.id)).map((o) => o.tag),
+      minEmpathy: empathy,
+      minResilience: resilience,
+      discipline,
+    };
+    if (onPublish) {
+      setPublishing(true);
+      try {
+        await onPublish(input);
+        onOpenChange(false);
+        setTitle("");
+      } catch {
+        /* the caller toasts the error */
+      } finally {
+        setPublishing(false);
+      }
+      return;
+    }
     toast.success(
       campaign === "scholarship-provider"
-        ? "Scholarship fund live. 142 pre-vetted all-rounders instantly mapped to your finalist report."
-        : "Opportunity live. 142 pre-vetted all-rounders instantly mapped to your active discovery feed.",
+        ? "Scholarship fund live. Pre-vetted all-rounders instantly mapped to your finalist report."
+        : "Opportunity live. Pre-vetted all-rounders instantly mapped to your active discovery feed.",
       { duration: 5000 },
     );
     onOpenChange(false);
@@ -134,6 +170,19 @@ export function CreateOpportunityModal({
             </div>
 
             <div className="mt-5 space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="fund-title" className="text-xs font-bold text-charcoal">
+                  {campaign === "scholarship-provider" ? "Fund Title" : "Intake Title"}
+                </Label>
+                <Input
+                  id="fund-title"
+                  placeholder="e.g. Regional Engineering Scholarship"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground"
+                />
+              </div>
+
               <div>
                 <p className="eyebrow text-charcoal">Life Load Matrices</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -262,12 +311,15 @@ export function CreateOpportunityModal({
 
         <div className="sticky bottom-0 border-t border-border bg-card p-6">
           <button
-            onClick={handlePublish}
-            className="w-full rounded-2xl bg-lime px-6 py-4 text-sm font-black text-lime-foreground shadow-lg shadow-lime/25 transition hover:brightness-105"
+            onClick={() => void handlePublish()}
+            disabled={publishing}
+            className="w-full rounded-2xl bg-lime px-6 py-4 text-sm font-black text-lime-foreground shadow-lg shadow-lime/25 transition hover:brightness-105 disabled:opacity-50"
           >
-            {campaign === "scholarship-provider"
-              ? "🔥 PUBLISH SCHOLARSHIP FUND"
-              : "🔥 PUBLISH GRADUATE INTAKE"}
+            {publishing
+              ? "Publishing…"
+              : campaign === "scholarship-provider"
+                ? "🔥 PUBLISH SCHOLARSHIP FUND"
+                : "🔥 PUBLISH GRADUATE INTAKE"}
           </button>
         </div>
       </DialogContent>

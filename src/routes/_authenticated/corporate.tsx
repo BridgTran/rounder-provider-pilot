@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Check, FileText } from "lucide-react";
 import { CaseStudyDrawer } from "@/components/CaseStudyDrawer";
@@ -7,8 +8,16 @@ import { CreateOpportunityModal } from "@/components/CreateOpportunityModal";
 import { GritBreakdownPanel } from "@/components/GritBreakdownPanel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { handleMatchStateTransition, useMatchState, findMatchByCode } from "@/lib/match-state";
-import { candidatePool } from "@/lib/candidate-pool";
+import {
+  createScholarshipFn,
+  getProviderDashboard,
+  listStudents,
+  requestMatchFn,
+  topUpCreditsFn,
+  type CandidateRecord,
+  type PublishScholarshipInput,
+  type ScholarshipFund,
+} from "@/lib/provider.functions";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 
 type DrawerCandidate = {
@@ -22,7 +31,9 @@ type DrawerCandidate = {
   traits: string[];
 };
 
-export const Route = createFileRoute("/corporate")({
+type FeedStatus = "passive" | "active" | "revealed";
+
+export const Route = createFileRoute("/_authenticated/corporate")({
   validateSearch: (search: Record<string, unknown>) => ({
     track:
       search["track"] === "scholarship-provider" || search["track"] === "scholarship"
@@ -188,7 +199,7 @@ function MultiSelectGate<T extends string | number>({
 
 function CorporateHub() {
   const { track } = Route.useSearch();
-  const { credits, matches, systemStatus } = useMatchState();
+  const queryClient = useQueryClient();
   const [caseStudy, setCaseStudy] = useState<DrawerCandidate | null>(null);
   const [lifeLoad, setLifeLoad] = useState<Set<string>>(new Set());
   const [empathy, setEmpathy] = useState(70);
@@ -200,7 +211,63 @@ function CorporateHub() {
   const [selectedStudyModes, setSelectedStudyModes] = useState<Set<StudyMode>>(new Set());
   const [selectedStudyLoads, setSelectedStudyLoads] = useState<Set<number>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [activeFundId, setActiveFundId] = useState<string | null>(null);
   const scholarship = track === "scholarship-provider";
+
+  const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => listStudents() });
+  const dashboardQuery = useQuery({
+    queryKey: ["provider-dashboard"],
+    queryFn: () => getProviderDashboard(),
+  });
+
+  const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
+  const dashboard = dashboardQuery.data;
+  const credits = dashboard?.credits ?? 0;
+  const funds = useMemo(() => dashboard?.scholarships ?? [], [dashboard?.scholarships]);
+  const matches = useMemo(() => dashboard?.matches ?? [], [dashboard?.matches]);
+
+  const invalidateAll = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["students"] }),
+      queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] }),
+    ]);
+
+  const requestMutation = useMutation({
+    mutationFn: (studentId: string) => requestMatchFn({ data: { studentId } }),
+    onSuccess: async () => {
+      await invalidateAll();
+      toast.success("Handshake pending", {
+        description: "The candidate has been notified. 1 Match Credit used.",
+      });
+    },
+    onError: (error) => {
+      toast.error("Match request failed", { description: error.message });
+    },
+  });
+
+  const topUpMutation = useMutation({
+    mutationFn: (amount: number) => topUpCreditsFn({ data: { amount } }),
+    onSuccess: async (balance) => {
+      await queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] });
+      toast.success("Top-up successful", { description: `Balance is now ${balance} Match Credits.` });
+    },
+    onError: (error) => {
+      toast.error("Top-up failed", { description: error.message });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (input: PublishScholarshipInput) => createScholarshipFn({ data: input }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] });
+      toast.success("Scholarship fund live", {
+        description: "Your fund is listed under My Funds and can drive the discovery feed.",
+      });
+    },
+    onError: (error) => {
+      toast.error("Publish failed", { description: error.message });
+    },
+  });
 
   const toggleLifeLoad = (opt: string) => {
     const next = new Set(lifeLoad);
@@ -216,7 +283,26 @@ function CorporateHub() {
     });
   };
 
-  // Every filter widget feeds the offline IRTO engine; results re-rank instantly.
+  /** Push a published fund's criteria into the discovery feed filters. */
+  const applyFund = (fund: ScholarshipFund) => {
+    if (activeFundId === fund.id) {
+      setActiveFundId(null);
+      setSelectedDisciplines(new Set());
+      setLifeLoad(new Set());
+      setEmpathy(70);
+      setResilience(80);
+      return;
+    }
+    setActiveFundId(fund.id);
+    setSelectedDisciplines(
+      fund.discipline && fund.discipline !== "All Disciplines" ? new Set([fund.discipline]) : new Set(),
+    );
+    setLifeLoad(new Set(fund.lifeLoad));
+    setEmpathy(fund.minEmpathy);
+    setResilience(fund.minResilience);
+  };
+
+  // Every filter widget feeds the IRTO engine; results re-rank instantly.
   const ranked = useMemo(() => {
     const criteria: FilterCriteria = {
       mandatory: {
@@ -233,16 +319,30 @@ function CorporateHub() {
         ...(lifeLoad.size ? { equityTags: Array.from(lifeLoad) } : {}),
       },
     };
-    return rankCandidates(candidatePool, criteria);
-  }, [selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, empathy, resilience, lifeLoad]);
+    return rankCandidates(students, criteria);
+  }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, empathy, resilience, lifeLoad]);
 
-  const statusOf = (code: string) => findMatchByCode(matches, code)?.status ?? "passive";
-  const recordOf = (code: string) => findMatchByCode(matches, code);
+  const studentByCode = (code: string) => students.find((s) => s.candidateCode === code);
+  const matchFor = (code: string) => {
+    const student = studentByCode(code);
+    return student ? matches.find((m) => m.studentId === student.id) : undefined;
+  };
+  const statusOf = (code: string): FeedStatus => {
+    const status = matchFor(code)?.status;
+    return status === "accepted" ? "revealed" : status === "pending" ? "active" : "passive";
+  };
 
   const requestMatch = (code: string) => {
-    const result = handleMatchStateTransition({ type: "ORG_REQUEST_MATCH", candidateCode: code });
-    if (result.ok) toast.success(result.message, { description: result.detail });
-    else toast.error(result.message, { description: result.detail });
+    const student = studentByCode(code);
+    if (!student) {
+      toast.error("Candidate not found in the live registry.");
+      return;
+    }
+    requestMutation.mutate(student.id);
+  };
+
+  const handlePublish = async (input: PublishScholarshipInput) => {
+    await publishMutation.mutateAsync(input);
   };
 
   return (
@@ -256,9 +356,17 @@ function CorporateHub() {
         }`}
       >
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-2xl font-black sm:text-3xl">
-            {scholarship ? "🏆 Scholarship Provider" : "💼 Graduate Employer"}
-          </h1>
+          <div>
+            <h1 className="text-2xl font-black sm:text-3xl">
+              {scholarship ? "🏆 Scholarship Provider" : "💼 Graduate Employer"}
+            </h1>
+            {dashboard?.organisationName && (
+              <p className={`mt-1 text-sm font-bold ${scholarship ? "text-muted-foreground" : "text-charcoal-foreground/60"}`}>
+                {dashboard.organisationName}
+                {dashboard.contactPerson ? ` · ${dashboard.contactPerson}` : ""}
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className={`rounded-md border px-4 py-2 text-sm font-black ${
             scholarship
@@ -268,10 +376,8 @@ function CorporateHub() {
             {credits} Match Credits
           </span>
           <Button
-            onClick={() => {
-              const r = handleMatchStateTransition({ type: "TOP_UP_CREDITS", amount: 10 });
-              toast.success(r.message, { description: r.detail });
-            }}
+            onClick={() => topUpMutation.mutate(10)}
+            disabled={topUpMutation.isPending}
             className="bg-lime font-black text-lime-foreground hover:bg-lime/90"
           >
             + Top Up
@@ -317,15 +423,15 @@ function CorporateHub() {
           }`}>
             {(scholarship
               ? [
-                  ["142", "Eligible Profiles"],
+                  [String(students.length), "Eligible Profiles"],
                   [String(ranked.length), "IRTO Finalists"],
-                  ["100%", "Context Verified"],
+                  [String(matches.length), "Match Requests"],
                   [String(credits), "Shared Credits"],
                 ]
               : [
-                  ["142", "Eligible Profiles"],
-                  ["5", "Grit Finalists"],
-                  ["100%", "Bias Reduction Matrix"],
+                  [String(students.length), "Eligible Profiles"],
+                  [String(ranked.length), "Grit Finalists"],
+                  [String(matches.length), "Match Requests"],
                   [String(credits), "Shared Credits"],
                 ]
             ).map(([value, label]) => (
@@ -337,11 +443,74 @@ function CorporateHub() {
           </dl>
       </section>
 
-      {systemStatus && (
-        <div className="flex items-center gap-3 rounded-2xl border-2 border-lime bg-lime/15 px-5 py-3 text-sm font-black text-charcoal">
-          <span className="pulse inline-block h-2 w-2 rounded-full bg-lime" />
-          {systemStatus}
-        </div>
+      {scholarship && (
+        <section aria-labelledby="my-funds-title" className="rounded-lg border border-charcoal/20 bg-card p-5 text-charcoal shadow-sm sm:px-8 sm:py-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="my-funds-title" className="text-lg font-black sm:text-xl">💰 My Funds</h2>
+            <span className="text-xs font-semibold text-muted-foreground">
+              {funds.length ? `${funds.length} published` : "No funds published yet"}
+            </span>
+          </div>
+          {funds.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Publish your first scholarship fund with “Configure New Scholarship Fund” — it will
+              appear here and can drive the discovery feed filters.
+            </p>
+          ) : (
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {funds.map((fund) => {
+                const active = activeFundId === fund.id;
+                return (
+                  <li
+                    key={fund.id}
+                    className={`rounded-xl border p-4 transition ${
+                      active ? "border-lime bg-lime/10 ring-2 ring-lime/50" : "border-charcoal/15 bg-secondary/50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-charcoal">{fund.title}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {[fund.orgClass, fund.location, fund.stipendAud != null ? `$${fund.stipendAud.toLocaleString()} AUD` : null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => applyFund(fund)}
+                        className={
+                          active
+                            ? "bg-charcoal text-charcoal-foreground hover:bg-charcoal/90"
+                            : "bg-lime font-black text-lime-foreground hover:bg-lime/90"
+                        }
+                      >
+                        {active ? "Clear filters" : "Drive feed"}
+                      </Button>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {fund.discipline !== "All Disciplines" && (
+                        <span className="rounded-full bg-charcoal/10 px-2 py-0.5 text-[10px] font-bold text-charcoal">
+                          {fund.discipline}
+                        </span>
+                      )}
+                      {fund.lifeLoad.map((tag) => (
+                        <span key={tag} className="rounded-full bg-charcoal/10 px-2 py-0.5 text-[10px] font-bold text-charcoal">
+                          {tag}
+                        </span>
+                      ))}
+                      {fund.finalistRequirements.map((req) => (
+                        <span key={req} className="rounded-full bg-lime/25 px-2 py-0.5 text-[10px] font-bold text-charcoal">
+                          {req}
+                        </span>
+                      ))}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       )}
 
       <div className="grid gap-8 pt-2 lg:grid-cols-4 lg:gap-10">
@@ -440,7 +609,13 @@ function CorporateHub() {
             </span>
           </div>
 
-          {ranked.length === 0 && (
+          {studentsQuery.isLoading && (
+            <div className="panel-light p-8 text-center">
+              <p className="text-sm font-bold text-charcoal">Loading the live candidate registry…</p>
+            </div>
+          )}
+
+          {!studentsQuery.isLoading && ranked.length === 0 && (
             <div className="panel-light p-8 text-center">
               <p className="text-sm font-bold text-charcoal">
                 No candidates clear your mandatory hard gates.
@@ -452,10 +627,11 @@ function CorporateHub() {
           )}
 
           {ranked.map((result) => {
-            const c = result.student as (typeof candidatePool)[number];
+            const c = result.student as CandidateRecord;
             const status = statusOf(c.candidateCode);
-            const record = recordOf(c.candidateCode);
-            const revealed = status === "revealed";
+            const match = matchFor(c.candidateCode);
+            const identity = match?.identity ?? null;
+            const revealed = status === "revealed" && identity !== null;
             const unlocked = revealed && !scholarship;
             return (
               <article
@@ -477,7 +653,7 @@ function CorporateHub() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className={`font-mono text-base font-black tracking-wider ${unlocked ? "text-white" : "text-charcoal"}`}>
-                      {revealed && record ? `✅ ${record.student.legalName}` : c.candidateCode}
+                      {revealed && identity ? `✅ ${identity.legalName}` : c.candidateCode}
                     </p>
                     <p className={`mt-1 text-sm ${unlocked ? "text-white/80" : "text-muted-foreground"}`}>
                       {c.degree} · {c.year}
@@ -518,7 +694,7 @@ function CorporateHub() {
                   </footer>
                 </blockquote>
 
-                {revealed && record && (
+                {revealed && identity && (
                   <div className={`mt-4 rounded-2xl border-2 p-4 ${unlocked ? "border-[#FDFBF7]/30 bg-[#FDFBF7]/[0.04]" : "border-lime bg-lime/10"}`}>
                     <p className={`eyebrow flex items-center gap-2 ${unlocked ? "text-[#FDFBF7]" : "text-charcoal"}`}>
                       {unlocked ? (
@@ -531,20 +707,20 @@ function CorporateHub() {
                     <dl className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
                       <div>
                         <dt className={`text-xs font-bold ${unlocked ? "text-white/60" : "text-charcoal/60"}`}>Legal name</dt>
-                        <dd className={`font-black ${unlocked ? "text-white" : "text-charcoal"}`}>{record.student.legalName}</dd>
+                        <dd className={`font-black ${unlocked ? "text-white" : "text-charcoal"}`}>{identity.legalName}</dd>
                       </div>
                       <div>
                         <dt className={`text-xs font-bold ${unlocked ? "text-white/60" : "text-charcoal/60"}`}>Phone</dt>
-                        <dd className={`font-semibold ${unlocked ? "text-white" : "text-charcoal"}`}>{record.student.phone}</dd>
+                        <dd className={`font-semibold ${unlocked ? "text-white" : "text-charcoal"}`}>{identity.phone}</dd>
                       </div>
                       <div className="sm:col-span-2">
                         <dt className={`text-xs font-bold ${unlocked ? "text-white/60" : "text-charcoal/60"}`}>Email</dt>
-                        <dd className={`break-all font-semibold ${unlocked ? "text-white" : "text-charcoal"}`}>{record.student.email}</dd>
+                        <dd className={`break-all font-semibold ${unlocked ? "text-white" : "text-charcoal"}`}>{identity.email}</dd>
                       </div>
                     </dl>
                     {unlocked ? (
                       <a
-                        href={record.student.transcriptUrl}
+                        href={identity.transcriptUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#FDFBF7]/60 bg-transparent px-4 py-3 text-xs font-black uppercase tracking-wider text-[#FDFBF7] transition hover:bg-white/5 active:scale-[0.99]"
@@ -554,7 +730,7 @@ function CorporateHub() {
                       </a>
                     ) : (
                       <a
-                        href={record.student.transcriptUrl}
+                        href={identity.transcriptUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="mt-3 inline-flex items-center gap-2 rounded-full bg-charcoal px-4 py-2.5 text-xs font-black text-charcoal-foreground transition hover:brightness-125"
@@ -590,7 +766,7 @@ function CorporateHub() {
                   </Button>
                   <Button
                     onClick={() => requestMatch(c.candidateCode)}
-                    disabled={status !== "passive"}
+                    disabled={status !== "passive" || requestMutation.isPending}
                     className={`text-xs font-black ${
                       status !== "passive"
                         ? unlocked
@@ -620,7 +796,12 @@ function CorporateHub() {
         onRequestMatch={requestMatch}
       />
 
-      <CreateOpportunityModal open={createOpen} onOpenChange={setCreateOpen} campaign={track} />
+      <CreateOpportunityModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        campaign={track}
+        onPublish={handlePublish}
+      />
       </div>
     </div>
   );
