@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const fundInputClass = "rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground";
-export function FundCriterion({ name, label, clause, onClause, children }: { name: string; label: string; clause?: string; onClause: (v: string) => void; children: ReactNode }) {
+export function FundCriterion({ name, label, clause, onClause, children }: { name: string; label: string; clause?: string | undefined; onClause: (v: string) => void; children: ReactNode }) {
   return <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)]">
     <div className="min-w-0 space-y-2"><Label htmlFor={name} className="text-xs font-bold text-charcoal">{label}</Label>{children}</div>
     <div className="min-w-0 space-y-2"><Label htmlFor={`${name}-clause`} className="text-xs text-muted-foreground">Deed clause reference <span className="font-normal">(optional)</span></Label><Input id={`${name}-clause`} aria-label={`${label} deed clause reference`} value={clause ?? ""} onChange={(e) => onClause(e.target.value)} placeholder="e.g. 4.2(a)" className={fundInputClass} /></div>

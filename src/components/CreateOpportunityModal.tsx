@@ -46,7 +46,7 @@ interface CreateOpportunityModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     /** Persist the fund to the provider's account. */
-    fund?: ScholarshipFund;
+    fund?: ScholarshipFund | undefined;
     onPublish: (input: FundSaveInput) => Promise<void>;
 }
 export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }: CreateOpportunityModalProps) {
@@ -91,6 +91,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
         const next = new Set(lifeLoad);
         next.has(id) ? next.delete(id) : next.add(id);
         setLifeLoad(next);
+        setConfirmed(false);
     };
     const toggleRequirement = (id: string) => {
         const next = new Set(requirements);
@@ -135,7 +136,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
               </div>
 
               <div>
-                <Input aria-label="Life Load deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses.lifeLoad ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, lifeLoad: e.target.value })} className={`mb-3 ${fundInputClass}`} />
+                <Input aria-label="Life Load deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['lifeLoad'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, lifeLoad: e.target.value })} className={`mb-3 ${fundInputClass}`} />
                 <p className="eyebrow text-charcoal">Life Load Matrices</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {lifeLoadOptions.map((opt) => (<label key={opt.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-3 hover:border-lime/40">
@@ -154,9 +155,9 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
               </div>
 
               <div>
-                <Input aria-label="Discipline deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses.discipline ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, discipline: e.target.value })} className={`mb-3 ${fundInputClass}`} />
+                <Input aria-label="Discipline deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['discipline'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, discipline: e.target.value })} className={`mb-3 ${fundInputClass}`} />
                 <p className="eyebrow text-charcoal">Academic Discipline Focus</p>
-                <Select value={discipline} onValueChange={setDiscipline}>
+                <Select value={discipline} onValueChange={(v) => { setDiscipline(v); setConfirmed(false); }}>
                   <SelectTrigger className="mt-3 w-full rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground">
                     <SelectValue placeholder="Select discipline"/>
                   </SelectTrigger>
