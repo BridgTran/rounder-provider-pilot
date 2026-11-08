@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, FileText } from "lucide-react";
+import { Copy, UserPlus } from "lucide-react";
+import { createStudentInvite } from "@/lib/invite.functions";
+import { Input } from "@/components/ui/input";
 import { CaseStudyDrawer } from "@/components/CaseStudyDrawer";
 import { CreateOpportunityModal } from "@/components/CreateOpportunityModal";
 import { GritBreakdownPanel } from "@/components/GritBreakdownPanel";
@@ -20,7 +22,7 @@ type DrawerCandidate = {
     endorser: string;
     traits: string[];
 };
-type FeedStatus = "passive" | "active" | "revealed";
+type FeedStatus = "passive" | "active" | "revealed" | "declined";
 export const Route = createFileRoute("/_authenticated/corporate")({
     head: () => ({
         meta: [
@@ -121,6 +123,8 @@ function MultiSelectGate<T extends string | number>({ label, options, selected, 
     </fieldset>);
 }
 function CorporateHub() {
+    const [inviteLink, setInviteLink] = useState("");
+    const inviteMutation = useMutation({ mutationFn: () => createStudentInvite(), onSuccess: ({ token }) => setInviteLink(`${window.location.origin}/invite/${token}`), onError: (error) => toast.error(error.message) });
     const queryClient = useQueryClient();
     const [caseStudy, setCaseStudy] = useState<DrawerCandidate | null>(null);
     const [lifeLoad, setLifeLoad] = useState<Set<string>>(new Set());
@@ -226,7 +230,7 @@ function CorporateHub() {
     };
     const statusOf = (code: string): FeedStatus => {
         const status = matchFor(code)?.status;
-        return status === "accepted" ? "revealed" : status === "pending" ? "active" : "passive";
+        return status === "accepted" ? "revealed" : status === "declined" ? "declined" : status === "pending" ? "active" : "passive";
     };
     const requestMatch = (code: string) => {
         const student = studentByCode(code);
@@ -245,7 +249,7 @@ function CorporateHub() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-black sm:text-3xl">
-              {"🏆 Scholarship Provider"}
+              {"Scholarship Provider Dashboard"}
             </h1>
             {dashboard?.organisationName && (<p className={`mt-1 text-sm font-bold ${"text-muted-foreground"}`}>
                 {dashboard.organisationName}
@@ -278,6 +282,10 @@ function CorporateHub() {
           </dl>
       </section>
 
+      <section aria-labelledby="student-invites-title" className="border-y border-border py-6">
+        <div className="flex flex-wrap items-center justify-between gap-4"><h2 id="student-invites-title" className="text-xl">Student invitations</h2><Button disabled={inviteMutation.isPending} onClick={() => inviteMutation.mutate()}><UserPlus />{inviteMutation.isPending ? "Creating…" : "Create student invite"}</Button></div>
+        {inviteLink && <div className="mt-4 flex min-w-0 gap-2"><Input aria-label="Private student invite link" value={inviteLink} readOnly className="min-w-0 flex-1" /><Button size="icon" variant="outline" aria-label="Copy student invite link" title="Copy student invite link" onClick={() => void navigator.clipboard.writeText(inviteLink).then(() => toast.success("Invite link copied"), () => toast.error("Select and copy the invite link."))}><Copy /></Button></div>}
+      </section>
       {true && (<section aria-labelledby="my-funds-title" className="rounded-lg border border-charcoal/20 bg-card p-5 text-charcoal shadow-sm sm:px-8 sm:py-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="my-funds-title" className="text-lg font-black sm:text-xl">💰 My Funds</h2>
@@ -391,8 +399,7 @@ function CorporateHub() {
             const match = matchFor(c.candidateCode);
             const identity = match?.identity ?? null;
             const revealed = status === "revealed" && identity !== null;
-            const unlocked = false;
-            return (<article key={c.candidateCode} className={`rounded-lg border p-5 transition duration-500 sm:p-7 ${"border-charcoal/15 bg-card"} ${revealed
+            return (<article key={c.candidateCode} className={`rounded-lg border p-5 transition duration-500 sm:p-7 ${"border-charcoal/15 bg-card"} ${status === "declined" ? "Request declined" : revealed
                     ? `handshake-flash ring-2 ${"ring-lime"}`
                     : status === "active"
                         ? "ring-2 ring-lime/60"
@@ -421,12 +428,12 @@ function CorporateHub() {
                     </span>)}
                 </div>
 
-                <blockquote className={`mt-4 rounded-2xl border-l-4 border-lime p-4 ${"bg-secondary/60"}`}>
+                {c.endorsement && <blockquote className={`mt-4 rounded-2xl border-l-4 border-lime p-4 ${"bg-secondary/60"}`}>
                   <p className={`text-sm italic ${"text-secondary-foreground"}`}>“{c.endorsement}”</p>
                   <footer className={`mt-2 text-xs font-bold ${"text-muted-foreground"}`}>
                     ✓ Verified — {c.endorser}
                   </footer>
-                </blockquote>
+                </blockquote>}
 
                 {revealed && identity && (<div className={`mt-4 rounded-2xl border-2 p-4 ${"border-lime bg-lime/10"}`}>
                     <p className={`eyebrow flex items-center gap-2 ${"text-charcoal"}`}>
@@ -447,7 +454,7 @@ function CorporateHub() {
                         <dd className={`break-all font-semibold ${"text-charcoal"}`}>{identity.email}</dd>
                       </div>
                     </dl>
-                    {(<a href={identity.transcriptUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-full bg-charcoal px-4 py-2.5 text-xs font-black text-charcoal-foreground transition hover:brightness-125">
+                    {identity.transcriptUrl && (<a href={identity.transcriptUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-full bg-charcoal px-4 py-2.5 text-xs font-black text-charcoal-foreground transition hover:brightness-125">
                         📄 View Verified My eQuals Transcript Link
                       </a>)}
                   </div>)}
@@ -462,14 +469,14 @@ function CorporateHub() {
                     endorsement: c.endorsement,
                     endorser: c.endorser,
                     traits: c.traits,
-                })} className={`text-xs font-bold ${"border-charcoal/25 text-charcoal hover:bg-charcoal/5"}`}>
+                })} className={`h-auto min-h-9 whitespace-normal text-xs font-bold ${"border-charcoal/25 text-charcoal hover:bg-charcoal/5"}`}>
                     ⚙️ View Full Anonymous Case Study
                   </Button>
-                  <Button onClick={() => requestMatch(c.candidateCode)} disabled={status !== "passive" || requestMutation.isPending} className={`text-xs font-black ${status !== "passive"
+                  <Button onClick={() => requestMatch(c.candidateCode)} disabled={status !== "passive" || credits < 1 || requestMutation.isPending} className={`h-auto min-h-9 whitespace-normal text-xs font-black ${status !== "passive"
                     ?
                         "border-2 border-lime bg-lime/20 text-charcoal"
                     : "bg-lime text-lime-foreground hover:brightness-105"}`}>
-                    {revealed
+                    {status === "declined" ? "Request declined" : revealed
                     ? "🤝 Handshake Complete"
                     : status === "active"
                         ? "🤝 Handshake Pending"

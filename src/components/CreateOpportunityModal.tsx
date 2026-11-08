@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, } from "@/components/ui/dialog";
@@ -175,7 +176,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, }: Creat
                 <Label htmlFor="org-class" className="text-xs font-bold text-charcoal">
                   Organization Classification
                 </Label>
-                <Input id="org-class" placeholder="e.g. Fortune 100 Miner" value={orgClass} onChange={(e) => setOrgClass(e.target.value)} className="rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground"/>
+                <Input id="org-class" placeholder="e.g. Charitable foundation" value={orgClass} onChange={(e) => setOrgClass(e.target.value)} className="rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground"/>
               </div>
 
               <div className="space-y-2">
@@ -211,12 +212,12 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, }: Creat
         </div>
 
         <div className="sticky bottom-0 border-t border-border bg-card p-6">
-          <button onClick={() => void handlePublish()} disabled={publishing} className="w-full rounded-2xl bg-lime px-6 py-4 text-sm font-black text-lime-foreground shadow-lg shadow-lime/25 transition hover:brightness-105 disabled:opacity-50">
+          <Button onClick={() => void handlePublish()} disabled={publishing} className="w-full rounded-2xl bg-lime px-6 py-4 text-sm font-black text-lime-foreground shadow-lg shadow-lime/25 transition hover:brightness-105 disabled:opacity-50">
             {publishing
             ? "Publishing…"
             :
                 "🔥 PUBLISH SCHOLARSHIP FUND"}
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>);
