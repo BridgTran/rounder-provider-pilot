@@ -14,13 +14,277 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      matches: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          contact_person: string
+          created_at: string
+          id: string
+          organisation_name: string
+        }
+        Insert: {
+          contact_person?: string
+          created_at?: string
+          id: string
+          organisation_name?: string
+        }
+        Update: {
+          contact_person?: string
+          created_at?: string
+          id?: string
+          organisation_name?: string
+        }
+        Relationships: []
+      }
+      provider_credits: {
+        Row: {
+          balance: number
+          provider_id: string
+        }
+        Insert: {
+          balance?: number
+          provider_id: string
+        }
+        Update: {
+          balance?: number
+          provider_id?: string
+        }
+        Relationships: []
+      }
+      scholarships: {
+        Row: {
+          created_at: string
+          discipline: string
+          finalist_requirements: string[]
+          id: string
+          life_load: string[]
+          location: string
+          min_empathy: number
+          min_resilience: number
+          org_class: string
+          provider_id: string
+          stipend_aud: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          discipline?: string
+          finalist_requirements?: string[]
+          id?: string
+          life_load?: string[]
+          location?: string
+          min_empathy?: number
+          min_resilience?: number
+          org_class?: string
+          provider_id: string
+          stipend_aud?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          discipline?: string
+          finalist_requirements?: string[]
+          id?: string
+          life_load?: string[]
+          location?: string
+          min_empathy?: number
+          min_resilience?: number
+          org_class?: string
+          provider_id?: string
+          stipend_aud?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
+      student_identities: {
+        Row: {
+          email: string
+          legal_name: string
+          phone: string
+          student_id: string
+          transcript_url: string
+        }
+        Insert: {
+          email: string
+          legal_name: string
+          phone: string
+          student_id: string
+          transcript_url: string
+        }
+        Update: {
+          email?: string
+          legal_name?: string
+          phone?: string
+          student_id?: string
+          transcript_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_identities_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          adaptability: number
+          birth_year: number
+          candidate_code: string
+          client_empathy: number
+          crisis_management: number
+          degree: string
+          degree_title: string
+          discipline: string
+          endorsement: string
+          endorser: string
+          equity_tags: string[]
+          id: string
+          org_mask: string
+          pressure_resilience: number
+          program: string
+          raw_gpa: number
+          study_load: number
+          study_mode: string
+          traits: string[]
+          uni: string
+          verified_centrelink: boolean
+          verified_low_ses: boolean
+          visa_status: string
+          weekly_hours: number
+          work_sector: string
+          year_label: string
+          year_level: number
+        }
+        Insert: {
+          adaptability: number
+          birth_year: number
+          candidate_code: string
+          client_empathy: number
+          crisis_management: number
+          degree: string
+          degree_title: string
+          discipline: string
+          endorsement?: string
+          endorser?: string
+          equity_tags?: string[]
+          id?: string
+          org_mask?: string
+          pressure_resilience: number
+          program?: string
+          raw_gpa: number
+          study_load: number
+          study_mode: string
+          traits?: string[]
+          uni: string
+          verified_centrelink?: boolean
+          verified_low_ses?: boolean
+          visa_status: string
+          weekly_hours: number
+          work_sector: string
+          year_label: string
+          year_level: number
+        }
+        Update: {
+          adaptability?: number
+          birth_year?: number
+          candidate_code?: string
+          client_empathy?: number
+          crisis_management?: number
+          degree?: string
+          degree_title?: string
+          discipline?: string
+          endorsement?: string
+          endorser?: string
+          equity_tags?: string[]
+          id?: string
+          org_mask?: string
+          pressure_resilience?: number
+          program?: string
+          raw_gpa?: number
+          study_load?: number
+          study_mode?: string
+          traits?: string[]
+          uni?: string
+          verified_centrelink?: boolean
+          verified_low_ses?: boolean
+          visa_status?: string
+          weekly_hours?: number
+          work_sector?: string
+          year_label?: string
+          year_level?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_match: { Args: { p_candidate_code: string }; Returns: undefined }
+      list_student_requests: {
+        Args: never
+        Returns: {
+          candidate_code: string
+          organisation: string
+          program: string
+          status: string
+        }[]
+      }
+      request_match: {
+        Args: { p_student_id: string }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          status: string
+          student_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      top_up_credits: { Args: { p_amount: number }; Returns: number }
     }
     Enums: {
       [_ in never]: never
