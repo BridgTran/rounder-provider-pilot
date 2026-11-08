@@ -1,5 +1,11 @@
 # Current work
 
+## Automatic team invitations
+- [x] Email a secure sign-in invitation using the default auth sender; signed-in send accepted by auth service.
+- [x] Automatically join verified invited accounts and remove the paste-and-join controls.
+- [x] Test verified-email automatic acceptance and repeat-load safety; signed-in mobile controls verified with no runtime errors.
+- [ ] Verify inbox arrival and a distinct colleague's email-link journey. Blocked: no second account/inbox was available.
+
 ## Extended fund rules and organisation access
 - [x] Add Required/Preferred rules, new criteria, university choices and award fields.
 - [x] Enforce attestation, immutable versions and append-only event auditing.

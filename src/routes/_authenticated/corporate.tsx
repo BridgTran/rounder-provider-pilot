@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProviderDashboard, listStudents, requestMatchFn, type CandidateRecord, type ScholarshipFund, } from "@/lib/provider.functions";
 import { saveFund, fundEligibilityResults } from "@/lib/fund.functions";
-import { inviteTeamMember, joinOrganisation } from "@/lib/organisation.functions";
+import { inviteTeamMember } from "@/lib/organisation.functions";
 import { emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 type DrawerCandidate = {
@@ -126,11 +126,7 @@ function MultiSelectGate<T extends string | number>({ label, options, selected, 
 }
 function CorporateHub() {
     const [teamEmail, setTeamEmail] = useState("");
-    const [teamLink, setTeamLink] = useState("");
-    const [joinLink, setJoinLink] = useState("");
-    useEffect(() => { const token = window.location.hash.match(/^#team-invite=([a-f0-9]{64})$/)?.[1]; if (token) setJoinLink(token); }, []);
-    const teamInvite = useMutation({ mutationFn: () => inviteTeamMember({ data: { email: teamEmail } }), onSuccess: ({ token }) => setTeamLink(`${window.location.origin}/corporate#team-invite=${token}`), onError: (e) => toast.error(e.message) });
-    const teamJoin = useMutation({ mutationFn: () => joinOrganisation({ data: { token: joinLink.split("team-invite=").pop()?.trim() ?? "" } }), onSuccess: async () => { await queryClient.invalidateQueries({queryKey:["provider-dashboard"]}); setJoinLink(""); toast.success("Organisation joined"); }, onError: (e) => toast.error(e.message) });
+    const teamInvite = useMutation({ mutationFn: () => inviteTeamMember({ data: { email: teamEmail } }), onSuccess: () => { setTeamEmail(""); toast.success("Invitation email sent"); }, onError: (e) => toast.error(e.message) });
     const [inviteLink, setInviteLink] = useState("");
     const inviteMutation = useMutation({ mutationFn: () => createStudentInvite(), onSuccess: ({ token }) => setInviteLink(`${window.location.origin}/invite/${token}`), onError: (error) => toast.error(error.message) });
     const queryClient = useQueryClient();
@@ -297,9 +293,7 @@ function CorporateHub() {
       </section>
       <section className="border-y border-border py-6" aria-labelledby="organisation-team-title">
         <h2 id="organisation-team-title" className="text-xl">Organisation team <span className="text-sm text-muted-foreground">· {dashboard?.memberCount ?? 0} members</span></h2>
-        {dashboard?.isOwner && <form className="mt-4 flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); teamInvite.mutate(); }}><Input type="email" required aria-label="Team member email" placeholder="Team member email" value={teamEmail} onChange={(e) => setTeamEmail(e.target.value)} className="min-w-0 flex-1" /><Button disabled={teamInvite.isPending}><UserPlus />Create team invitation</Button></form>}
-        {teamLink && <div className="mt-3 flex min-w-0 gap-2"><Input aria-label="Team invitation link" readOnly value={teamLink} className="min-w-0 flex-1" /><Button size="icon" variant="outline" title="Copy team invitation" aria-label="Copy team invitation" onClick={() => void navigator.clipboard.writeText(teamLink).then(() => toast.success("Team invitation copied"))}><Copy /></Button></div>}
-        <form className="mt-4 flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); teamJoin.mutate(); }}><Input aria-label="Organisation invitation link" placeholder="Organisation invitation link" value={joinLink} onChange={(e) => setJoinLink(e.target.value)} className="min-w-0 flex-1" /><Button variant="outline" disabled={!joinLink || teamJoin.isPending}>Join organisation</Button></form>
+        {dashboard?.isOwner && <form className="mt-4 flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); teamInvite.mutate(); }}><Input type="email" required aria-label="Team member email" placeholder="Team member email" value={teamEmail} onChange={(e) => setTeamEmail(e.target.value)} className="min-w-0 flex-1" /><Button disabled={teamInvite.isPending}><UserPlus />{teamInvite.isPending ? "Sending…" : "Send team invitation"}</Button></form>}
       </section>
       {true && (<section aria-labelledby="my-funds-title" className="rounded-lg border border-charcoal/20 bg-card p-5 text-charcoal shadow-sm sm:px-8 sm:py-6">
           <div className="flex flex-wrap items-center justify-between gap-3">

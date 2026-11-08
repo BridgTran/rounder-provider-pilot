@@ -127,6 +127,9 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ProviderDashboard> => {
     const { supabase, userId } = context;
+    // Joining is automatic, but only the server-verified invited email grants access.
+    const { error: invitationError } = await supabase.rpc("claim_organisation_invitations");
+    if (invitationError) throw new Error(invitationError.message);
     const [profileRes, creditsRes, scholarshipsRes, matchesRes, identitiesRes] =
       await Promise.all([
         supabase
