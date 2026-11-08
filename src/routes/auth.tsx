@@ -222,7 +222,7 @@ function AuthPage() {
                 <button
                   type="button"
                   onClick={() => void handleForgotPassword()}
-                  className="text-[11px] font-bold text-lime underline hover:brightness-110"
+                  className="-mr-2 px-2 py-2 text-xs font-bold text-lime underline hover:brightness-110"
                 >
                   Forgot password?
                 </button>
