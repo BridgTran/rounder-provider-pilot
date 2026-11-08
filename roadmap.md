@@ -1,5 +1,10 @@
 # Current work
 
+## Deed-backed scholarship configuration
+- [ ] Update form, private PDF upload, eligibility count and draft/activation actions.
+- [ ] Persist versioned rules and append-only provider audit history.
+- [ ] Verify saving, activation, eligibility and private access.
+
 ## Provider-first experience
 - [x] Replace employer and student screens with provider dashboard and private student invitations.
 - [x] Enforce consent, intake, per-request accept/decline, and deletion using invite credentials.
