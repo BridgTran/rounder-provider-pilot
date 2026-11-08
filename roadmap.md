@@ -4,7 +4,7 @@
 - [x] Add Required/Preferred rules, new criteria, university choices and award fields.
 - [x] Enforce attestation, immutable versions and append-only event auditing.
 - [x] Add secure shared organisation access for multiple logins and funds.
-- [x] Verify signed-in saves, preference counts, Required gating, invite acceptance, unlock acceptance, deletion and RLS; 24 tests pass.
+- [x] Verify signed-in saves, preference counts, Required gating, invite acceptance, unlock acceptance, deletion and RLS; 27 tests pass.
 - [ ] Verify shared organisation access with a second independent login. Blocked: only the requesting user's session was available; verified-email invitation acceptance was checked with that account.
 
 ## Provider password reset
