@@ -136,8 +136,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
               </div>
 
               <div>
-                <Input aria-label="Life Load deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['lifeLoad'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, lifeLoad: e.target.value })} className={`mb-3 ${fundInputClass}`} />
-                <p className="eyebrow text-charcoal">Life Load Matrices</p>
+                <div className="grid items-center gap-3 sm:grid-cols-2"><p className="eyebrow text-charcoal">Life Load Matrices</p><Input aria-label="Life Load deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['lifeLoad'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, lifeLoad: e.target.value })} className={fundInputClass} /></div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {lifeLoadOptions.map((opt) => (<label key={opt.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-3 hover:border-lime/40">
                       <Checkbox checked={lifeLoad.has(opt.id)} onCheckedChange={() => toggleLifeLoad(opt.id)} id={opt.id}/>
@@ -155,8 +154,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
               </div>
 
               <div>
-                <Input aria-label="Discipline deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['discipline'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, discipline: e.target.value })} className={`mb-3 ${fundInputClass}`} />
-                <p className="eyebrow text-charcoal">Academic Discipline Focus</p>
+                <div className="grid items-center gap-3 sm:grid-cols-2"><p className="eyebrow text-charcoal">Academic Discipline Focus</p><Input aria-label="Discipline deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['discipline'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, discipline: e.target.value })} className={fundInputClass} /></div>
                 <Select value={discipline} onValueChange={(v) => { setDiscipline(v); setConfirmed(false); }}>
                   <SelectTrigger className="mt-3 w-full rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground">
                     <SelectValue placeholder="Select discipline"/>
@@ -192,6 +190,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
                 <Label htmlFor="stipend" className="text-xs font-bold text-charcoal">
                   Funding Stipend Value ($ AUD)
                 </Label>
+                <Input aria-label="Stipend deed clause reference" placeholder="Deed clause reference (optional)" value={rules.clauses['stipend'] ?? ""} onChange={(e) => updateRule("clauses", { ...rules.clauses, stipend: e.target.value })} className={fundInputClass} />
                 <Input id="stipend" type="number" placeholder="e.g. 25000" value={stipend} onChange={(e) => setStipend(e.target.value)} className="rounded-xl border-border bg-secondary/40 py-2.5 text-sm font-semibold text-secondary-foreground"/>
               </div>
             </div>
@@ -232,7 +231,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
         </div>
 
         <div className="sticky bottom-0 border-t border-border bg-card p-6">
-          <p role="status" aria-live="polite" className="mb-3 text-sm font-bold text-charcoal">{!currentRules.postcodes.every((p) => /^\d{4}$/.test(p)) ? "Enter four-digit postcodes" : eligibility.isError ? "Eligibility count unavailable" : eligibility.isFetching ? "Checking eligibility…" : `${eligibility.data?.length ?? 0} currently eligible students`}</p>
+          <p role="status" aria-live="polite" className="mb-3 text-sm font-bold text-charcoal">{!currentRules.postcodes.every((p) => /^\d{4}$/.test(p)) ? "Enter four-digit postcodes" : eligibility.isError ? "Eligibility count unavailable" : eligibility.isFetching ? "Checking eligibility…" : `${eligibility.data?.length ?? 0} currently eligible student${eligibility.data?.length === 1 ? "" : "s"}`}</p>
           <p className="mb-3 text-xs text-muted-foreground">Missing eligibility details are not counted for restricted rules. Blank lists accept any; postcodes and regions are alternatives.</p>
           <label className="mb-4 flex items-start gap-3 text-xs font-semibold text-charcoal"><Checkbox checked={confirmed} onCheckedChange={(v) => setConfirmed(v === true)} aria-label="I confirm these rules reflect our trust deed" /><span>I confirm these rules reflect our trust deed</span></label>
           <div className="grid grid-cols-2 gap-3"><Button variant="outline" onClick={() => void handlePublish(false)} disabled={publishing || uploading}><Save />{publishing ? "Saving…" : "Save draft"}</Button><Button onClick={() => void handlePublish(true)} disabled={publishing || uploading || !confirmed} className="bg-lime font-black text-lime-foreground hover:bg-lime/90"><Check />Activate fund</Button></div>
