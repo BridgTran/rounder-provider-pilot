@@ -11,7 +11,8 @@ import { GritBreakdownPanel } from "@/components/GritBreakdownPanel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProviderDashboard, listStudents, requestMatchFn, type CandidateRecord, type ScholarshipFund, } from "@/lib/provider.functions";
-import { saveFund, eligibleStudents } from "@/lib/fund.functions";
+import { saveFund, fundEligibilityResults } from "@/lib/fund.functions";
+import { inviteTeamMember, joinOrganisation } from "@/lib/organisation.functions";
 import { emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 type DrawerCandidate = {
@@ -125,6 +126,11 @@ function MultiSelectGate<T extends string | number>({ label, options, selected, 
     </fieldset>);
 }
 function CorporateHub() {
+    const [teamEmail, setTeamEmail] = useState("");
+    const [teamLink, setTeamLink] = useState("");
+    const [joinLink, setJoinLink] = useState("");
+    const teamInvite = useMutation({ mutationFn: () => inviteTeamMember({ data: { email: teamEmail } }), onSuccess: ({ token }) => setTeamLink(`${window.location.origin}/corporate#team-invite=${token}`), onError: (e) => toast.error(e.message) });
+    const teamJoin = useMutation({ mutationFn: () => joinOrganisation({ data: { token: joinLink.split("team-invite=").pop()?.trim() ?? "" } }), onSuccess: async () => { await queryClient.invalidateQueries({queryKey:["provider-dashboard"]}); setJoinLink(""); toast.success("Organisation joined"); }, onError: (e) => toast.error(e.message) });
     const [inviteLink, setInviteLink] = useState("");
     const inviteMutation = useMutation({ mutationFn: () => createStudentInvite(), onSuccess: ({ token }) => setInviteLink(`${window.location.origin}/invite/${token}`), onError: (error) => toast.error(error.message) });
     const queryClient = useQueryClient();
@@ -152,14 +158,14 @@ function CorporateHub() {
     const credits = dashboard?.credits ?? 0;
     const funds = useMemo(() => dashboard?.scholarships ?? [], [dashboard?.scholarships]);
     const appliedFund = funds.find((f) => f.id === activeFundId && f.status === "active");
-    const eligibleQuery = useQuery({ queryKey: ["active-fund-eligible", appliedFund?.id, appliedFund?.version], queryFn: () => eligibleStudents({ data: { rules: appliedFund?.rules ?? emptyFundRules(), discipline: appliedFund?.discipline ?? "All Disciplines", lifeLoad: appliedFund?.lifeLoad ?? [] } }), enabled: !!appliedFund });
+    const eligibleQuery = useQuery({ queryKey: ["active-fund-eligible", appliedFund?.id, appliedFund?.version], queryFn: () => fundEligibilityResults({ data: { rules: appliedFund?.rules ?? emptyFundRules(), discipline: appliedFund?.discipline ?? "All Disciplines", lifeLoad: appliedFund?.lifeLoad ?? [] } }), enabled: !!appliedFund });
     const matches = useMemo(() => dashboard?.matches ?? [], [dashboard?.matches]);
     const invalidateAll = () => Promise.all([
         queryClient.invalidateQueries({ queryKey: ["students"] }),
         queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] }),
     ]);
     const requestMutation = useMutation({
-        mutationFn: (studentId: string) => requestMatchFn({ data: { studentId } }),
+        mutationFn: (studentId: string) => requestMatchFn({ data: { studentId, fundId: appliedFund?.id ?? "" } }),
         onSuccess: async () => {
             await invalidateAll();
             toast.success("Handshake pending", {
@@ -201,8 +207,8 @@ function CorporateHub() {
             return;
         }
         setActiveFundId(fund.id);
-        setSelectedDisciplines(fund.discipline && fund.discipline !== "All Disciplines" ? new Set([fund.discipline]) : new Set());
-        setLifeLoad(new Set(fund.lifeLoad));
+        setSelectedDisciplines(new Set());
+        setLifeLoad(new Set());
     };
     // Every filter widget feeds the IRTO engine; results re-rank instantly.
     const ranked = useMemo(() => {
@@ -219,7 +225,11 @@ function CorporateHub() {
                 ...(lifeLoad.size ? { equityTags: Array.from(lifeLoad) } : {}),
             },
         };
-        return rankCandidates(appliedFund ? students.filter((s) => eligibleQuery.data?.includes(s.id)) : students, criteria);
+        if (appliedFund) {
+            const counts = new Map(eligibleQuery.data?.map((r) => [r.student_id,r]) ?? []);
+            return rankCandidates(students.filter((s) => counts.has(s.id)), { mandatory: {}, preferred: {} }).sort((a,b) => (counts.get(b.student.id)?.preferences_met ?? 0) - (counts.get(a.student.id)?.preferences_met ?? 0));
+        }
+        return rankCandidates(students, criteria);
     }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, lifeLoad, appliedFund, eligibleQuery.data]);
     const studentByCode = (code: string) => students.find((s) => s.candidateCode === code);
     const matchFor = (code: string) => {
@@ -236,6 +246,7 @@ function CorporateHub() {
             toast.error("Candidate not found in the live registry.");
             return;
         }
+        if (!appliedFund) { toast.error("Choose an active fund first"); return; }
         requestMutation.mutate(student.id);
     };
     const handlePublish = async (input: FundSaveInput) => {
@@ -284,6 +295,12 @@ function CorporateHub() {
         <div className="flex flex-wrap items-center justify-between gap-4"><h2 id="student-invites-title" className="text-xl">Student invitations</h2><Button disabled={inviteMutation.isPending} onClick={() => inviteMutation.mutate()}><UserPlus />{inviteMutation.isPending ? "Creating…" : "Create student invite"}</Button></div>
         {inviteLink && <div className="mt-4 flex min-w-0 gap-2"><Input aria-label="Private student invite link" value={inviteLink} readOnly className="min-w-0 flex-1" /><Button size="icon" variant="outline" aria-label="Copy student invite link" title="Copy student invite link" onClick={() => void navigator.clipboard.writeText(inviteLink).then(() => toast.success("Invite link copied"), () => toast.error("Select and copy the invite link."))}><Copy /></Button></div>}
       </section>
+      <section className="border-y border-border py-6" aria-labelledby="organisation-team-title">
+        <h2 id="organisation-team-title" className="text-xl">Organisation team <span className="text-sm text-muted-foreground">· {dashboard?.memberCount ?? 0} members</span></h2>
+        {dashboard?.isOwner && <form className="mt-4 flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); teamInvite.mutate(); }}><Input type="email" required aria-label="Team member email" placeholder="Team member email" value={teamEmail} onChange={(e) => setTeamEmail(e.target.value)} className="min-w-0 flex-1" /><Button disabled={teamInvite.isPending}><UserPlus />Create team invitation</Button></form>}
+        {teamLink && <div className="mt-3 flex min-w-0 gap-2"><Input aria-label="Team invitation link" readOnly value={teamLink} className="min-w-0 flex-1" /><Button size="icon" variant="outline" title="Copy team invitation" aria-label="Copy team invitation" onClick={() => void navigator.clipboard.writeText(teamLink).then(() => toast.success("Team invitation copied"))}><Copy /></Button></div>}
+        <form className="mt-4 flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); teamJoin.mutate(); }}><Input aria-label="Organisation invitation link" placeholder="Organisation invitation link" value={joinLink} onChange={(e) => setJoinLink(e.target.value)} className="min-w-0 flex-1" /><Button variant="outline" disabled={!joinLink || teamJoin.isPending}>Join organisation</Button></form>
+      </section>
       {true && (<section aria-labelledby="my-funds-title" className="rounded-lg border border-charcoal/20 bg-card p-5 text-charcoal shadow-sm sm:px-8 sm:py-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="my-funds-title" className="text-lg font-black sm:text-xl">💰 My Funds</h2>
@@ -302,7 +319,7 @@ function CorporateHub() {
                       <div>
                         <p className="text-sm font-black text-charcoal">{fund.title}</p><p className="mt-1 text-xs text-muted-foreground">{fund.status === "active" ? "Active" : "Draft"} · Rule version {fund.version}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {[fund.orgClass, fund.location, fund.stipendAud != null ? `$${fund.stipendAud.toLocaleString()} AUD` : null]
+                          {[fund.orgClass, fund.location, fund.maximumAwardValue != null ? `Up to $${fund.maximumAwardValue.toLocaleString()} AUD · ${fund.rules.numberOfAwards ?? "—"} awards` : null]
                             .filter(Boolean)
                             .join(" · ")}
                         </p>
@@ -310,7 +327,7 @@ function CorporateHub() {
                       <div className="flex flex-col gap-2"><Button size="sm" variant="outline" onClick={() => { setEditingFund(fund); setCreateOpen(true); }}>Edit rules</Button><Button size="sm" disabled={fund.status !== "active"} onClick={() => applyFund(fund)} className={active
                             ? "bg-charcoal text-charcoal-foreground hover:bg-charcoal/90"
                             : "bg-lime font-black text-lime-foreground hover:bg-lime/90"}>
-                        {active ? "Clear filters" : "Drive feed"}
+                        {active ? "Clear filters" : "Show matching students"}
                       </Button></div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
@@ -372,7 +389,7 @@ function CorporateHub() {
             </h2>
             <span className={`flex items-center gap-2 text-xs font-medium ${"text-muted-foreground"}`}>
               <span className="pulse inline-block h-2 w-2 rounded-full bg-lime"/> {ranked.length}{" "}
-              matched · ranked by eligibility fit
+              eligible · {appliedFund ? "ordered by preferences met" : "all candidates"}
             </span>
           </div>
 
@@ -411,7 +428,7 @@ function CorporateHub() {
                     <p className={`text-xs ${"text-muted-foreground/70"}`}>{c.uni}</p>
                   </div>
                   <div className="flex flex-col items-end text-right">
-                    <GritBreakdownPanel result={result} theme={"scholarship"} tone={"light"}/>
+                    {appliedFund ? <span className="text-sm font-bold text-charcoal">Meets {eligibleQuery.data?.find((r) => r.student_id === c.id)?.preferences_met ?? 0} of {eligibleQuery.data?.find((r) => r.student_id === c.id)?.preferences_total ?? 0} preferences</span> : <span className="text-xs text-muted-foreground">Select a fund to check eligibility</span>}
                   </div>
                 </div>
 
@@ -470,7 +487,7 @@ function CorporateHub() {
                 })} className={`h-auto min-h-9 whitespace-normal text-xs font-bold ${"border-charcoal/25 text-charcoal hover:bg-charcoal/5"}`}>
                     ⚙️ View Full Anonymous Case Study
                   </Button>
-                  <Button onClick={() => requestMatch(c.candidateCode)} disabled={status !== "passive" || credits < 1 || requestMutation.isPending} className={`h-auto min-h-9 whitespace-normal text-xs font-black ${status !== "passive"
+                  <Button onClick={() => requestMatch(c.candidateCode)} disabled={!appliedFund || status !== "passive" || credits < 1 || requestMutation.isPending} className={`h-auto min-h-9 whitespace-normal text-xs font-black ${status !== "passive"
                     ?
                         "border-2 border-lime bg-lime/20 text-charcoal"
                     : "bg-lime text-lime-foreground hover:brightness-105"}`}>
