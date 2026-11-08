@@ -71,6 +71,13 @@
       "when": 1794178855409,
       "tag": "0009_extended_student_intake",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794179910116,
+      "tag": "0010_automatic_verified_team_join",
+      "breakpoints": true
     }
   ]
 }

@@ -661,6 +661,7 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      claim_organisation_invitations: { Args: never; Returns: number }
       create_organisation_invite: {
         Args: { p_email: string; p_hash: string }
         Returns: undefined
