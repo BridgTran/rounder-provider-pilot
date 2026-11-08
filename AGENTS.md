@@ -15,3 +15,4 @@
 - The authenticated provider workspace remains at /corporate; / resolves to provider sign-in or workspace, while /invite/$token is the only student surface. Why: private invitations replace public student browsing without breaking provider URLs.
 - Student invitation secrets are generated server-side, stored only as hashes, and checked inside a narrowly scoped transactional RPC for consent, intake, per-match decisions and cascading deletion. Why: candidate codes and client state must never authorize student actions.
 - Administrative roles live in public.user_roles and getAdminOverview validates has_role before privileged aggregate reads. Why: neither provider signup metadata nor browser storage can confer admin access.
+- Pilot admin assignment runs only from verified-email Auth lifecycle events and removes the pilot role if that identity changes email. Why: signup metadata and unverified email ownership cannot grant administrative privileges.
