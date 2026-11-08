@@ -4,6 +4,7 @@
 - [x] Add "Forgot password?" on the sign-in form and a reset-password page that only accepts a valid recovery link.
 - [x] Verify the button, the confirmation message, and graceful handling of expired/invalid links; 3 tests pass.
 - [ ] Confirm the reset email is delivered. Blocked: no sending domain is configured, so auth email delivery can't be confirmed from here.
+- [ ] Connect a custom email domain and verify auth-email delivery. Blocked: the user will give a heads-up about a week before pilot invitations; the default sender stays in place until then.
 
 ## Deed-backed scholarship configuration
 - [x] Update form, private PDF upload, eligibility count and draft/activation actions.
