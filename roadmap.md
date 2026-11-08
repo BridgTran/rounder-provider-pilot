@@ -1,10 +1,11 @@
 # Current work
 
 ## Extended fund rules and organisation access
-- [ ] Add Required/Preferred rules, new criteria, university choices and award fields.
-- [ ] Enforce attestation, immutable versions and append-only event auditing.
-- [ ] Add secure shared organisation access for multiple logins and funds.
-- [ ] Verify matching, saving, team access and table permissions end-to-end.
+- [x] Add Required/Preferred rules, new criteria, university choices and award fields.
+- [x] Enforce attestation, immutable versions and append-only event auditing.
+- [x] Add secure shared organisation access for multiple logins and funds.
+- [x] Verify signed-in saves, preference counts, Required gating, invite acceptance, unlock acceptance, deletion and RLS; 24 tests pass.
+- [ ] Verify shared organisation access with a second independent login. Blocked: only the requesting user's session was available; verified-email invitation acceptance was checked with that account.
 
 ## Provider password reset
 - [x] Add "Forgot password?" on the sign-in form and a reset-password page that only accepts a valid recovery link.
@@ -22,7 +23,7 @@
 - [x] Enforce consent, intake, per-request accept/decline, and deletion using invite credentials.
 - [x] Remove shared wallet and protect the admin route with server-validated roles.
 - [x] Verify public entry, mobile layout, invalid invite rejection, database access restrictions and student action validation.
-- [ ] Verify signed-in provider → invite → consent → intake → unlock decision → deletion end-to-end. Blocked: no requesting-user account or signed-in session.
+- [x] Verify signed-in provider → invite → consent → intake → unlock decision → deletion end-to-end.
 - [ ] Activate the requested admin account. Blocked: tran.bridgitte@gmail.com must register and confirm its email; verified-email assignment is configured.
 
 ## Scholarship-provider pilot MVP

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Copy, UserPlus } from "lucide-react";
@@ -7,7 +7,6 @@ import { createStudentInvite } from "@/lib/invite.functions";
 import { Input } from "@/components/ui/input";
 import { CaseStudyDrawer } from "@/components/CaseStudyDrawer";
 import { CreateOpportunityModal } from "@/components/CreateOpportunityModal";
-import { GritBreakdownPanel } from "@/components/GritBreakdownPanel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProviderDashboard, listStudents, requestMatchFn, type CandidateRecord, type ScholarshipFund, } from "@/lib/provider.functions";
@@ -129,6 +128,7 @@ function CorporateHub() {
     const [teamEmail, setTeamEmail] = useState("");
     const [teamLink, setTeamLink] = useState("");
     const [joinLink, setJoinLink] = useState("");
+    useEffect(() => { const token = window.location.hash.match(/^#team-invite=([a-f0-9]{64})$/)?.[1]; if (token) setJoinLink(token); }, []);
     const teamInvite = useMutation({ mutationFn: () => inviteTeamMember({ data: { email: teamEmail } }), onSuccess: ({ token }) => setTeamLink(`${window.location.origin}/corporate#team-invite=${token}`), onError: (e) => toast.error(e.message) });
     const teamJoin = useMutation({ mutationFn: () => joinOrganisation({ data: { token: joinLink.split("team-invite=").pop()?.trim() ?? "" } }), onSuccess: async () => { await queryClient.invalidateQueries({queryKey:["provider-dashboard"]}); setJoinLink(""); toast.success("Organisation joined"); }, onError: (e) => toast.error(e.message) });
     const [inviteLink, setInviteLink] = useState("");
