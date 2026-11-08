@@ -8,7 +8,6 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { StudentProfile, StudyMode, WorkSector } from "./irto";
@@ -101,7 +100,7 @@ export interface StudentIdentity {
 export interface ProviderMatch {
   id: string;
   studentId: string;
-  status: "pending" | "accepted";
+  status: "pending" | "accepted" | "declined";
   acceptedAt: string | null;
   /** Present only after the student accepted (RLS-gated). */
   identity: StudentIdentity | null;
@@ -136,7 +135,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
           .select("*")
           .eq("provider_id", userId)
           .order("created_at", { ascending: false }),
-        supabase.from("matches").select("id, student_id, status, accepted_at"),
+        supabase.from("matches").select("id, student_id, status, accepted_at, declined_at"),
         // RLS returns identities only for students with an accepted match.
         supabase.from("student_identities").select("*"),
       ]);
@@ -173,7 +172,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
       matches: (matchesRes.data ?? []).map((m) => ({
         id: m.id,
         studentId: m.student_id,
-        status: m.status as "pending" | "accepted",
+        status: m.declined_at ? "declined" : m.status as "pending" | "accepted",
         acceptedAt: m.accepted_at,
         identity: identityByStudent.get(m.student_id) ?? null,
       })),
@@ -191,16 +190,6 @@ export const requestMatchFn = createServerFn({ method: "POST" })
     return match;
   });
 
-export const topUpCreditsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { amount: number }) => input)
-  .handler(async ({ data, context }) => {
-    const { data: balance, error } = await context.supabase.rpc("top_up_credits", {
-      p_amount: data.amount,
-    });
-    if (error) throw new Error(error.message);
-    return balance as number;
-  });
 
 export interface PublishScholarshipInput {
   title: string;
@@ -233,62 +222,3 @@ export const createScholarshipFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
   });
 
-/* -------------------------------------------------------- student (public) */
-
-function createPublicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  return createClient<Database>(process.env["SUPABASE_URL"]!, key, {
-    auth: { persistSession: false },
-    // Opaque sb_ keys aren't JWTs: send apikey only, never an Authorization bearer.
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-          h.delete("Authorization");
-        }
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-}
-
-/** Anonymized student records for the public student view (no PII). */
-export const listPublicStudents = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await createPublicClient()
-    .from("students")
-    .select("*")
-    .order("candidate_code");
-  if (error) throw new Error(error.message);
-  return (data ?? []).map(mapStudentRow);
-});
-
-export interface StudentRequest {
-  candidateCode: string;
-  program: string;
-  status: "pending" | "accepted";
-  /** Masked org label until accepted, then the provider's organisation name. */
-  organisation: string;
-}
-
-export const listStudentRequests = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await createPublicClient().rpc("list_student_requests");
-  if (error) throw new Error(error.message);
-  return (data ?? []).map(
-    (r): StudentRequest => ({
-      candidateCode: r.candidate_code,
-      program: r.program,
-      status: r.status as "pending" | "accepted",
-      organisation: r.organisation,
-    }),
-  );
-});
-
-export const acceptMatchFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { candidateCode: string }) => input)
-  .handler(async ({ data }) => {
-    const { error } = await createPublicClient().rpc("accept_match", {
-      p_candidate_code: data.candidateCode,
-    });
-    if (error) throw new Error(error.message);
-  });

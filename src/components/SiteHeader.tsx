@@ -2,11 +2,11 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CampaignToggle, PortalToggle } from "./PortalToggle";
+import { Button } from "./ui/button";
 
 export function SiteHeader() {
-  const isCorporate = useRouterState({
-    select: (state) => state.location.pathname.startsWith("/corporate"),
+  const isInvite = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/invite/"),
   });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -41,13 +41,13 @@ export function SiteHeader() {
               ROUNDER HQ
             </span>
           </Link>
-          {signedIn ? (
-            <button
+          {!isInvite && (signedIn ? (
+            <Button variant="outline" size="sm"
               onClick={() => void handleSignOut()}
               className="rounded-md border border-charcoal-foreground/20 px-3 py-1.5 text-xs font-black text-charcoal-foreground/80 transition hover:border-lime hover:text-lime"
             >
               Sign out
-            </button>
+            </Button>
           ) : (
             <Link
               to="/auth"
@@ -56,11 +56,9 @@ export function SiteHeader() {
             >
               Provider Sign In
             </Link>
-          )}
+          ))}
         </div>
-        <PortalToggle />
       </div>
-      {isCorporate && <CampaignToggle />}
     </header>
   );
 }

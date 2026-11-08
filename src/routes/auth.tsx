@@ -30,7 +30,7 @@ export const Route = createFileRoute("/auth")({
 
 /** Only same-origin relative paths may be used as a post-login target. */
 function safeRedirect(path: string | undefined): string {
-  if (path && path.startsWith("/") && !path.startsWith("//")) return path;
+  if (path === "/admin") return path;
   return "/corporate";
 }
 
@@ -91,8 +91,8 @@ function AuthPage() {
         </h1>
         <p className="mt-2 text-sm text-charcoal-foreground/70">
           {mode === "sign-in"
-            ? "Access your candidate discovery feed, funds and Match Credits."
-            : "Create a provider account. New workspaces start with 12 Match Credits."}
+            ? "Welcome back to your scholarship workspace."
+            : "Register your scholarship organisation."}
         </p>
 
         {checkEmail ? (
