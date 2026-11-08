@@ -28,7 +28,20 @@ export const fundHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase.from("scholarship_audit").select("id,version,action,created_at,actor_id").eq("fund_id", data.id).order("version", { ascending: false });
+    const { data: rows, error } = await context.supabase.from("scholarship_rule_versions").select("id,version,snapshot,created_at").eq("fund_id", data.id).order("version", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const universityList = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { data, error } = await context.supabase.from("australian_universities").select("name").order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((u) => u.name);
+});
+export const fundEligibilityResults = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ rules: fundRulesSchema, discipline: z.string(), lifeLoad: z.array(z.string()) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase.rpc("fund_eligibility_results", { p_rules: data.rules, p_discipline: data.discipline, p_life_load: data.lifeLoad });
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
