@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { passwordResetRedirectUrl } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -45,6 +46,7 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSignIn = async () => {
     setBusy(true);
@@ -82,6 +84,24 @@ function AuthPage() {
     setCheckEmail(true);
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Enter your email address first, then tap Forgot password.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: passwordResetRedirectUrl(window.location.origin),
+    });
+    setBusy(false);
+    if (resetError) {
+      setError(resetError.message);
+      return;
+    }
+    setResetSent(true);
+  };
+
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-12 sm:py-16">
       <div className="panel-dark p-6 sm:p-8">
@@ -106,6 +126,23 @@ function AuthPage() {
               onClick={() => {
                 setCheckEmail(false);
                 setMode("sign-in");
+              }}
+              className="mt-4 text-xs font-bold text-lime underline hover:brightness-110"
+            >
+              Back to sign in
+            </button>
+          </div>
+        ) : resetSent ? (
+          <div className="mt-6 rounded-2xl border border-lime/50 bg-lime/10 p-5 text-sm font-semibold text-charcoal-foreground">
+            <p className="font-black text-lime">📬 Reset link sent</p>
+            <p className="mt-2 text-charcoal-foreground/80">
+              If <span className="font-bold">{email}</span> has an account, a reset link is on its
+              way. It expires in an hour.
+            </p>
+            <button
+              onClick={() => {
+                setResetSent(false);
+                setError(null);
               }}
               className="mt-4 text-xs font-bold text-lime underline hover:brightness-110"
             >
@@ -181,6 +218,15 @@ function AuthPage() {
                 placeholder="••••••••"
                 className="border-charcoal-foreground/20 bg-charcoal-foreground/5 text-charcoal-foreground placeholder:text-charcoal-foreground/40"
               />
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => void handleForgotPassword()}
+                  className="text-[11px] font-bold text-lime underline hover:brightness-110"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             {error && (
