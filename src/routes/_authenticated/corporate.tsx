@@ -10,7 +10,9 @@ import { CreateOpportunityModal } from "@/components/CreateOpportunityModal";
 import { GritBreakdownPanel } from "@/components/GritBreakdownPanel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createScholarshipFn, getProviderDashboard, listStudents, requestMatchFn, type CandidateRecord, type PublishScholarshipInput, type ScholarshipFund, } from "@/lib/provider.functions";
+import { getProviderDashboard, listStudents, requestMatchFn, type CandidateRecord, type ScholarshipFund, } from "@/lib/provider.functions";
+import { saveFund, eligibleStudents } from "@/lib/fund.functions";
+import { emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 type DrawerCandidate = {
     code: string;
@@ -137,6 +139,7 @@ function CorporateHub() {
     const [selectedStudyModes, setSelectedStudyModes] = useState<Set<StudyMode>>(new Set());
     const [selectedStudyLoads, setSelectedStudyLoads] = useState<Set<number>>(new Set());
     const [createOpen, setCreateOpen] = useState(false);
+    const [editingFund, setEditingFund] = useState<ScholarshipFund | undefined>();
     const [activeFundId, setActiveFundId] = useState<string | null>(null);
     const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => listStudents() });
     const dashboardQuery = useQuery({
@@ -147,6 +150,8 @@ function CorporateHub() {
     const dashboard = dashboardQuery.data;
     const credits = dashboard?.credits ?? 0;
     const funds = useMemo(() => dashboard?.scholarships ?? [], [dashboard?.scholarships]);
+    const appliedFund = funds.find((f) => f.id === activeFundId && f.status === "active");
+    const eligibleQuery = useQuery({ queryKey: ["active-fund-eligible", appliedFund?.id, appliedFund?.version], queryFn: () => eligibleStudents({ data: { rules: appliedFund?.rules ?? emptyFundRules(), discipline: appliedFund?.discipline ?? "All Disciplines", lifeLoad: appliedFund?.lifeLoad ?? [] } }), enabled: !!appliedFund });
     const matches = useMemo(() => dashboard?.matches ?? [], [dashboard?.matches]);
     const invalidateAll = () => Promise.all([
         queryClient.invalidateQueries({ queryKey: ["students"] }),
@@ -165,15 +170,13 @@ function CorporateHub() {
         },
     });
     const publishMutation = useMutation({
-        mutationFn: (input: PublishScholarshipInput) => createScholarshipFn({ data: input }),
+        mutationFn: (input: FundSaveInput) => saveFund({ data: input }),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] });
-            toast.success("Scholarship fund live", {
-                description: "Your fund is listed under My Funds and can drive the discovery feed.",
-            });
+            toast.success("Fund rules saved", { description: "A new rule version was recorded." });
         },
         onError: (error) => {
-            toast.error("Publish failed", { description: error.message });
+            toast.error("Save failed", { description: error.message });
         },
     });
     const toggleLifeLoad = (opt: string) => {
@@ -221,8 +224,8 @@ function CorporateHub() {
                 ...(lifeLoad.size ? { equityTags: Array.from(lifeLoad) } : {}),
             },
         };
-        return rankCandidates(students, criteria);
-    }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, empathy, resilience, lifeLoad]);
+        return rankCandidates(appliedFund ? students.filter((s) => eligibleQuery.data?.includes(s.id)) : students, criteria);
+    }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, empathy, resilience, lifeLoad, appliedFund, eligibleQuery.data]);
     const studentByCode = (code: string) => students.find((s) => s.candidateCode === code);
     const matchFor = (code: string) => {
         const student = studentByCode(code);
@@ -240,7 +243,7 @@ function CorporateHub() {
         }
         requestMutation.mutate(student.id);
     };
-    const handlePublish = async (input: PublishScholarshipInput) => {
+    const handlePublish = async (input: FundSaveInput) => {
         await publishMutation.mutateAsync(input);
     };
     return (<div className={"bg-background"}>
@@ -257,7 +260,7 @@ function CorporateHub() {
               </p>)}
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button onClick={() => setCreateOpen(true)} variant={"default"} className={"bg-charcoal font-black text-charcoal-foreground hover:bg-charcoal/90"}>
+          <Button onClick={() => { setEditingFund(undefined); setCreateOpen(true); }} variant={"default"} className={"bg-charcoal font-black text-charcoal-foreground hover:bg-charcoal/90"}>
             {"Configure New Scholarship Fund"}
           </Button>
           </div>
@@ -290,11 +293,11 @@ function CorporateHub() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="my-funds-title" className="text-lg font-black sm:text-xl">💰 My Funds</h2>
             <span className="text-xs font-semibold text-muted-foreground">
-              {funds.length ? `${funds.length} published` : "No funds published yet"}
+              {funds.length ? `${funds.length} funds` : "No funds yet"}
             </span>
           </div>
           {funds.length === 0 ? (<p className="mt-3 text-sm text-muted-foreground">
-              Publish your first scholarship fund with “Configure New Scholarship Fund” — it will
+              Save your first scholarship fund with “Configure New Scholarship Fund” — it will
               appear here and can drive the discovery feed filters.
             </p>) : (<ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {funds.map((fund) => {
@@ -302,18 +305,18 @@ function CorporateHub() {
                     return (<li key={fund.id} className={`rounded-xl border p-4 transition ${active ? "border-lime bg-lime/10 ring-2 ring-lime/50" : "border-charcoal/15 bg-secondary/50"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-black text-charcoal">{fund.title}</p>
+                        <p className="text-sm font-black text-charcoal">{fund.title}</p><p className="mt-1 text-xs text-muted-foreground">{fund.status === "active" ? "Active" : "Draft"} · Rule version {fund.version}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {[fund.orgClass, fund.location, fund.stipendAud != null ? `$${fund.stipendAud.toLocaleString()} AUD` : null]
                             .filter(Boolean)
                             .join(" · ")}
                         </p>
                       </div>
-                      <Button size="sm" onClick={() => applyFund(fund)} className={active
+                      <div className="flex flex-col gap-2"><Button size="sm" variant="outline" onClick={() => { setEditingFund(fund); setCreateOpen(true); }}>Edit rules</Button><Button size="sm" disabled={fund.status !== "active"} onClick={() => applyFund(fund)} className={active
                             ? "bg-charcoal text-charcoal-foreground hover:bg-charcoal/90"
                             : "bg-lime font-black text-lime-foreground hover:bg-lime/90"}>
                         {active ? "Clear filters" : "Drive feed"}
-                      </Button>
+                      </Button></div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {fund.discipline !== "All Disciplines" && (<span className="rounded-full bg-charcoal/10 px-2 py-0.5 text-[10px] font-bold text-charcoal">
@@ -490,7 +493,7 @@ function CorporateHub() {
 
       <CaseStudyDrawer candidate={caseStudy} credits={credits} matched={caseStudy ? statusOf(caseStudy.code) !== "passive" : false} onClose={() => setCaseStudy(null)} onRequestMatch={requestMatch}/>
 
-      <CreateOpportunityModal open={createOpen} onOpenChange={setCreateOpen} onPublish={handlePublish}/>
+      {createOpen && <CreateOpportunityModal key={editingFund?.id ?? "new"} fund={editingFund} open={createOpen} onOpenChange={setCreateOpen} onPublish={handlePublish}/>}
       </div>
     </div>);
 }
