@@ -672,6 +672,27 @@ export type Database = {
           student_id: string
         }[]
       }
+      evaluate_fund_rules: {
+        Args: {
+          p_discipline: string
+          p_life_load: string[]
+          p_rules: Json
+          p_student: string
+        }
+        Returns: {
+          met: boolean
+          preferred: boolean
+          rule_key: string
+        }[]
+      }
+      fund_eligibility_results: {
+        Args: { p_discipline: string; p_life_load: string[]; p_rules: Json }
+        Returns: {
+          preferences_met: number
+          preferences_total: number
+          student_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -688,6 +709,27 @@ export type Database = {
           program: string
           status: string
         }[]
+      }
+      request_fund_unlock: {
+        Args: { p_fund_id: string; p_student_id: string }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          declined_at: string | null
+          fund_id: string | null
+          id: string
+          organisation_id: string | null
+          provider_id: string
+          rule_version: number | null
+          status: string
+          student_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       request_match: {
         Args: { p_student_id: string }
