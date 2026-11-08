@@ -1,5 +1,11 @@
 # Current work
 
+## Extended fund rules and organisation access
+- [ ] Add Required/Preferred rules, new criteria, university choices and award fields.
+- [ ] Enforce attestation, immutable versions and append-only event auditing.
+- [ ] Add secure shared organisation access for multiple logins and funds.
+- [ ] Verify matching, saving, team access and table permissions end-to-end.
+
 ## Provider password reset
 - [x] Add "Forgot password?" on the sign-in form and a reset-password page that only accepts a valid recovery link.
 - [x] Verify the button, the confirmation message, and graceful handling of expired/invalid links; 3 tests pass.
