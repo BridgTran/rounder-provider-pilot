@@ -52,7 +52,7 @@ function StudentInvitation() {
   const action = useMutation({
     mutationFn: (input: Parameters<typeof studentInviteAction>[0]["data"]) => studentInviteAction({ data: input }),
     onSuccess: (state) => {
-      if (state.deleted) { setDeleted(true); client.removeQueries({ queryKey: ["student-invite", token] }); }
+      if (state.deleted) { setDeleted(true); client.setQueryData(["student-invite", token], state); }
       else client.setQueryData(["student-invite", token], state);
     }, onError: (error) => toast.error(error.message),
   });
