@@ -113,7 +113,7 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
             {"🏆 Configure New Scholarship Fund"}
           </DialogTitle>
           <DialogDescription className="text-charcoal-foreground/70">
-            {"Build a context-matched fund that recognises potential relative to opportunity."}
+            {"Build a fund matched on structured eligibility criteria."}
           </DialogDescription>
         </DialogHeader>
 
@@ -147,6 +147,9 @@ export function CreateOpportunityModal({ open, onOpenChange, onPublish, fund, }:
                 </div>
               </div>
 
+              {/* Vector B, deferred until post-pilot: the Required Qualitative Skills sliders are
+                  hidden and excluded from validation, fund creation and matching/eligibility logic.
+                  Pilot matching uses structured eligibility criteria only. Do not delete. */}
               <div hidden className="space-y-5">
                 <p className="eyebrow text-charcoal">Required Qualitative Skills</p>
                 <RangeSlider label="Client Empathy" value={empathy} onChange={setEmpathy}/>
