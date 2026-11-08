@@ -29,6 +29,13 @@
       "when": 1794133914193,
       "tag": "0003_verified_pilot_admin_assignment",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794133960610,
+      "tag": "0004_lock_private_invite_table_access",
+      "breakpoints": true
     }
   ]
 }
