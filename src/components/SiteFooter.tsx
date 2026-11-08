@@ -4,7 +4,7 @@ export function SiteFooter() {
       <div className="panel-dark flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-display text-lg font-black">ROUNDER HQ</p>
         <p className="text-sm text-charcoal-foreground/70">
-          Contextual matching for Australian students and employers. Melbourne · Sydney · Brisbane
+          Scholarship opportunities. Student consent. Real potential.
         </p>
       </div>
     </footer>

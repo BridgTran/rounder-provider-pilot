@@ -86,7 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "ROUNDER HQ matches Australian students with employers on context, not just grades.",
+          "ROUNDER HQ connects scholarship providers with students through private, consent-based matching.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

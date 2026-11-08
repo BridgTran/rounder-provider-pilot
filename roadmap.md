@@ -1,5 +1,11 @@
 # Current work
 
+## Provider-first experience
+- [ ] Replace employer and student screens with provider dashboard and private student invitations.
+- [ ] Enforce consent, intake, per-request accept/decline, and deletion using invite credentials.
+- [ ] Remove shared wallet and protect the admin route with server-validated roles.
+- [ ] Verify provider, student and access-control flows.
+
 ## Scholarship-provider pilot MVP
 - [x] Enable Lovable Cloud.
 - [x] Email/password auth for providers; profiles table (org name, contact person) auto-created on signup.
