@@ -20,7 +20,7 @@ export const Route = createFileRoute("/auth")({
       { property: "og:title", content: "Provider Sign In — ROUNDER HQ" },
       {
         property: "og:description",
-        content: "Access the context-matched candidate discovery workspace.",
+        content: "Access the scholarship candidate discovery workspace.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
