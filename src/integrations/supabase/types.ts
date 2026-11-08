@@ -14,13 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_events: {
+        Row: {
+          actor: string
+          actor_role: string
+          created_at: string
+          event_type: string
+          fund_id: string | null
+          id: string
+          organisation_id: string
+          rule_version: number | null
+        }
+        Insert: {
+          actor: string
+          actor_role: string
+          created_at?: string
+          event_type: string
+          fund_id?: string | null
+          id?: string
+          organisation_id: string
+          rule_version?: number | null
+        }
+        Update: {
+          actor?: string
+          actor_role?: string
+          created_at?: string
+          event_type?: string
+          fund_id?: string | null
+          id?: string
+          organisation_id?: string
+          rule_version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_events_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      australian_universities: {
+        Row: {
+          name: string
+        }
+        Insert: {
+          name: string
+        }
+        Update: {
+          name?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          fund_id: string | null
           id: string
+          organisation_id: string | null
           provider_id: string
+          rule_version: number | null
           status: string
           student_id: string
         }
@@ -28,8 +91,11 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           declined_at?: string | null
+          fund_id?: string | null
           id?: string
+          organisation_id?: string | null
           provider_id: string
+          rule_version?: number | null
           status?: string
           student_id: string
         }
@@ -37,12 +103,29 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           declined_at?: string | null
+          fund_id?: string | null
           id?: string
+          organisation_id?: string | null
           provider_id?: string
+          rule_version?: number | null
           status?: string
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "matches_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "matches_student_id_fkey"
             columns: ["student_id"]
@@ -52,26 +135,101 @@ export type Database = {
           },
         ]
       }
+      organisation_invites: {
+        Row: {
+          accepted_at: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          organisation_id: string
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_by: string
+          email: string
+          expires_at?: string
+          id?: string
+          organisation_id: string
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          organisation_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisation_invites_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organisation_members: {
+        Row: {
+          member_role: string
+          organisation_id: string
+          user_id: string
+        }
+        Insert: {
+          member_role?: string
+          organisation_id: string
+          user_id: string
+        }
+        Update: {
+          member_role?: string
+          organisation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisation_members_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           contact_person: string
           created_at: string
           id: string
+          organisation_id: string | null
           organisation_name: string
         }
         Insert: {
           contact_person?: string
           created_at?: string
           id: string
+          organisation_id?: string | null
           organisation_name?: string
         }
         Update: {
           contact_person?: string
           created_at?: string
           id?: string
+          organisation_id?: string | null
           organisation_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       provider_credits: {
         Row: {
@@ -85,6 +243,24 @@ export type Database = {
         Update: {
           balance?: number
           provider_id?: string
+        }
+        Relationships: []
+      }
+      provider_organisations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -174,9 +350,11 @@ export type Database = {
           id: string
           life_load: string[]
           location: string
+          maximum_award_value: number | null
           min_empathy: number
           min_resilience: number
           org_class: string
+          organisation_id: string | null
           provider_id: string
           rule_version: number
           rules: Json
@@ -193,9 +371,11 @@ export type Database = {
           id?: string
           life_load?: string[]
           location?: string
+          maximum_award_value?: number | null
           min_empathy?: number
           min_resilience?: number
           org_class?: string
+          organisation_id?: string | null
           provider_id: string
           rule_version?: number
           rules?: Json
@@ -212,9 +392,11 @@ export type Database = {
           id?: string
           life_load?: string[]
           location?: string
+          maximum_award_value?: number | null
           min_empathy?: number
           min_resilience?: number
           org_class?: string
+          organisation_id?: string | null
           provider_id?: string
           rule_version?: number
           rules?: Json
@@ -222,38 +404,61 @@ export type Database = {
           stipend_aud?: number | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scholarships_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_eligibility: {
         Row: {
+          campus_state: string | null
           centrelink_concession: boolean | null
+          degree_level: string | null
           first_generation: boolean | null
+          first_undergraduate_degree: boolean | null
+          gender: string | null
           household_income: number | null
           institution: string | null
           postcode: string | null
           region: string | null
           state: string | null
           student_id: string
+          years_completed: number | null
         }
         Insert: {
+          campus_state?: string | null
           centrelink_concession?: boolean | null
+          degree_level?: string | null
           first_generation?: boolean | null
+          first_undergraduate_degree?: boolean | null
+          gender?: string | null
           household_income?: number | null
           institution?: string | null
           postcode?: string | null
           region?: string | null
           state?: string | null
           student_id: string
+          years_completed?: number | null
         }
         Update: {
+          campus_state?: string | null
           centrelink_concession?: boolean | null
+          degree_level?: string | null
           first_generation?: boolean | null
+          first_undergraduate_degree?: boolean | null
+          gender?: string | null
           household_income?: number | null
           institution?: string | null
           postcode?: string | null
           region?: string | null
           state?: string | null
           student_id?: string
+          years_completed?: number | null
         }
         Relationships: [
           {
@@ -452,10 +657,39 @@ export type Database = {
     }
     Functions: {
       accept_match: { Args: { p_candidate_code: string }; Returns: undefined }
+      accept_organisation_invite: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      create_organisation_invite: {
+        Args: { p_email: string; p_hash: string }
+        Returns: undefined
+      }
       create_student_invite: { Args: { p_token_hash: string }; Returns: string }
       eligible_scholarship_students: {
         Args: { p_discipline: string; p_life_load: string[]; p_rules: Json }
         Returns: {
+          student_id: string
+        }[]
+      }
+      evaluate_fund_rules: {
+        Args: {
+          p_discipline: string
+          p_life_load: string[]
+          p_rules: Json
+          p_student: string
+        }
+        Returns: {
+          met: boolean
+          preferred: boolean
+          rule_key: string
+        }[]
+      }
+      fund_eligibility_results: {
+        Args: { p_discipline: string; p_life_load: string[]; p_rules: Json }
+        Returns: {
+          preferences_met: number
+          preferences_total: number
           student_id: string
         }[]
       }
@@ -466,6 +700,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_organisation_member: { Args: { p_org: string }; Returns: boolean }
       list_student_requests: {
         Args: never
         Returns: {
@@ -475,14 +710,38 @@ export type Database = {
           status: string
         }[]
       }
+      request_fund_unlock: {
+        Args: { p_fund_id: string; p_student_id: string }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          declined_at: string | null
+          fund_id: string | null
+          id: string
+          organisation_id: string | null
+          provider_id: string
+          rule_version: number | null
+          status: string
+          student_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_match: {
         Args: { p_student_id: string }
         Returns: {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          fund_id: string | null
           id: string
+          organisation_id: string | null
           provider_id: string
+          rule_version: number | null
           status: string
           student_id: string
         }

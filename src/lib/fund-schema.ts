@@ -1,6 +1,19 @@
 import { z } from "zod";
 
+export const australianStates = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
+export const degreeLevels = ["undergraduate", "honours", "postgraduate coursework", "postgraduate research"] as const;
+export const ruleStrengthSchema = z.enum(["Required", "Preferred"]);
+export const attestationText = (title: string) => `I confirm these rules reflect our trust deed and that I am authorised to set them on behalf of ${title || "[fund name]"}.`;
+
 export const fundRulesSchema = z.object({
+  strengths: z.record(ruleStrengthSchema).default({}),
+  gender: z.enum(["any", "female", "male", "non-binary"]).default("any"),
+  degreeLevel: z.enum(["any", ...degreeLevels]).default("any"),
+  firstUndergraduateDegree: z.enum(["yes", "no", "any"]).default("any"),
+  yearsCompleted: z.number().min(0).max(20).nullable().default(null),
+  minimumAcademicAverage: z.number().min(0).max(100).nullable().default(null),
+  studyMode: z.enum(["any", "on-campus", "online"]).default("any"),
+  campusStates: z.array(z.enum(australianStates)).default([]),
   state: z.enum(["any", "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"]).default("any"),
   postcodes: z.array(z.string().regex(/^\d{4}$/)).max(500).default([]),
   regions: z.array(z.string().trim().min(1).max(100)).max(100).default([]),
@@ -22,7 +35,7 @@ export const fundSaveSchema = z.object({
   expectedVersion: z.number().int().nonnegative().default(0),
   title: z.string().trim().min(1, "Give your fund a title first").max(200),
   orgClass: z.enum(["", "Charitable foundation", "Private trust", "Corporate CSR", "Other"]),
-  stipendAud: z.number().int().nonnegative().nullable(),
+  maximumAwardValue: z.number().int().nonnegative().nullable(),
   discipline: z.enum(["All Disciplines", "Law", "Engineering", "Business", "Medicine", "Arts"]),
   lifeLoad: z.array(z.enum(["High External Workload 20+ hrs", "Primary Caretaker", "Regional/Remote Background"])),
   rules: fundRulesSchema,
@@ -30,6 +43,7 @@ export const fundSaveSchema = z.object({
   activate: z.boolean(),
   confirmed: z.boolean(),
 }).superRefine((v, ctx) => {
+  if ((v.activate || v.id) && !v.confirmed) ctx.addIssue({ code: "custom", message: "Confirm the deed rules and your authority for this fund", path: ["confirmed"] });
   if (!v.activate) return;
   if (!v.confirmed) ctx.addIssue({ code: "custom", message: "Confirm these rules reflect your trust deed", path: ["confirmed"] });
   if (!v.rules.numberOfAwards) ctx.addIssue({ code: "custom", message: "Enter the number of awards", path: ["rules", "numberOfAwards"] });
