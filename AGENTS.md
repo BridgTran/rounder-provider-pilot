@@ -11,5 +11,8 @@
 
 ## Architecture
 
-- Backend is Lovable Cloud: provider email/password auth, `profiles` + `provider_credits` (auto-created by signup trigger), `students` (anonymized, public-read), `student_identities` (PII, RLS-readable only after an accepted match), `scholarships` (provider-owned), `matches` (pending/accepted). Credit spend and match lifecycle go through security-definer RPCs (`request_match`, `top_up_credits`, `accept_match`, `list_student_requests`); app logic lives in `createServerFn` functions in `src/lib/provider.functions.ts`. Why: the double-blind reveal must be enforced by row-level security, not UI hiding.
-- The provider workspace (`/corporate`) sits under the `_authenticated` gate; the student view (`/`) stays public and reads only anonymized data via publishable-key server functions.
+- Provider data is authenticated-only; student PII remains protected by accepted-match RLS, and provider-only credit spending remains atomic through request_match. Why: removing the shared wallet must not bypass the existing per-provider unlock charge.
+- The authenticated provider workspace remains at /corporate; / resolves to provider sign-in or workspace, while /invite/$token is the only student surface. Why: private invitations replace public student browsing without breaking provider URLs.
+- Student invitation secrets are generated server-side, stored only as hashes, and checked inside a narrowly scoped transactional RPC for consent, intake, per-match decisions and cascading deletion. Why: candidate codes and client state must never authorize student actions.
+- Administrative roles live in public.user_roles and getAdminOverview validates has_role before privileged aggregate reads. Why: neither provider signup metadata nor browser storage can confer admin access.
+- Pilot admin assignment runs only from verified-email Auth lifecycle events and removes the pilot role if that identity changes email. Why: signup metadata and unverified email ownership cannot grant administrative privileges.

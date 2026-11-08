@@ -399,7 +399,7 @@ function CorporateHub() {
             const match = matchFor(c.candidateCode);
             const identity = match?.identity ?? null;
             const revealed = status === "revealed" && identity !== null;
-            return (<article key={c.candidateCode} className={`rounded-lg border p-5 transition duration-500 sm:p-7 ${"border-charcoal/15 bg-card"} ${status === "declined" ? "Request declined" : revealed
+            return (<article key={c.candidateCode} className={`rounded-lg border p-5 transition duration-500 sm:p-7 ${"border-charcoal/15 bg-card"} ${revealed
                     ? `handshake-flash ring-2 ${"ring-lime"}`
                     : status === "active"
                         ? "ring-2 ring-lime/60"
