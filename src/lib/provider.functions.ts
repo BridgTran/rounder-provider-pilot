@@ -87,6 +87,7 @@ export interface ScholarshipFund {
   orgClass: string;
   location: string;
   stipendAud: number | null;
+  maximumAwardValue: number | null;
   finalistRequirements: string[];
   lifeLoad: string[];
   minEmpathy: number;
@@ -112,6 +113,9 @@ export interface ProviderMatch {
 }
 
 export interface ProviderDashboard {
+  organisationId: string | null;
+  memberCount: number;
+  isOwner: boolean;
   organisationName: string;
   contactPerson: string;
   credits: number;
@@ -127,7 +131,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
       await Promise.all([
         supabase
           .from("profiles")
-          .select("organisation_name, contact_person")
+          .select("organisation_name, contact_person, organisation_id")
           .eq("id", userId)
           .maybeSingle(),
         supabase
@@ -138,7 +142,6 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
         supabase
           .from("scholarships")
           .select("*")
-          .eq("provider_id", userId)
           .order("created_at", { ascending: false }),
         supabase.from("matches").select("id, student_id, status, accepted_at, declined_at"),
         // RLS returns identities only for students with an accepted match.
@@ -157,8 +160,15 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
       ]),
     );
 
+    const orgId = profileRes.data?.organisation_id;
+    const org = orgId ? await supabase.from("provider_organisations").select("name").eq("id",orgId).maybeSingle() : null;
+    const members = orgId ? await supabase.from("organisation_members").select("user_id,member_role").eq("organisation_id",orgId) : null;
+    if (profileRes.error || creditsRes.error || scholarshipsRes.error || matchesRes.error || identitiesRes.error) throw new Error("Could not load provider workspace");
     return {
-      organisationName: profileRes.data?.organisation_name ?? "",
+      organisationId: orgId ?? null,
+      memberCount: members?.data?.length ?? 0,
+      isOwner: members?.data?.some((m) => m.user_id === userId && m.member_role === "owner") ?? false,
+      organisationName: org?.data?.name ?? profileRes.data?.organisation_name ?? "",
       contactPerson: profileRes.data?.contact_person ?? "",
       credits: creditsRes.data?.balance ?? 0,
       scholarships: (scholarshipsRes.data ?? []).map((s) => ({
@@ -171,6 +181,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
         orgClass: s.org_class,
         location: s.location,
         stipendAud: s.stipend_aud,
+        maximumAwardValue: s.maximum_award_value,
         finalistRequirements: s.finalist_requirements,
         lifeLoad: s.life_load,
         minEmpathy: s.min_empathy,
@@ -190,10 +201,11 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
 
 export const requestMatchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { studentId: string }) => input)
+  .inputValidator((input: { studentId: string; fundId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: match, error } = await context.supabase.rpc("request_match", {
+    const { data: match, error } = await context.supabase.rpc("request_fund_unlock", {
       p_student_id: data.studentId,
+      p_fund_id: data.fundId,
     });
     if (error) throw new Error(error.message);
     return match;
