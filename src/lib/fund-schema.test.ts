@@ -3,6 +3,18 @@ import { emptyFundRules, fundSaveSchema, fundRulesSchema } from "./fund-schema";
 
 const draft = () => ({ title: "Pilot", orgClass: "Private trust", maximumAwardValue: 25000, discipline: "All Disciplines", lifeLoad: [], rules: emptyFundRules(), deedPath: null, activate: false, confirmed: false });
 describe("Deed-backed fund rules", () => {
+  it("accepts degree-level criteria without inventing a level from a degree title", () => {
+    expect(fundRulesSchema.safeParse({degreeLevel:"undergraduate"}).success).toBe(true);
+    expect(fundRulesSchema.safeParse({degreeLevel:"certificate"}).success).toBe(false);
+  });
+  it("accepts nonnegative years completed", () => {
+    expect(fundRulesSchema.safeParse({yearsCompleted:2.5}).success).toBe(true);
+    expect(fundRulesSchema.safeParse({yearsCompleted:-1}).success).toBe(false);
+  });
+  it("stores maximum award value rather than the deprecated stipend", () => {
+    expect(fundSaveSchema.parse(draft()).maximumAwardValue).toBe(25000);
+    expect(fundSaveSchema.safeParse({...draft(),maximumAwardValue:-1}).success).toBe(false);
+  });
   it("requires fresh attestation on every later saved change", () => {
     expect(fundSaveSchema.safeParse({...draft(), id:"00000000-0000-4000-8000-000000000001"}).success).toBe(false);
     expect(fundSaveSchema.safeParse({...draft(), id:"00000000-0000-4000-8000-000000000001", confirmed:true}).success).toBe(true);
