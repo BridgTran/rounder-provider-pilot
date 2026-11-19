@@ -1,5 +1,11 @@
 # Current work
 
+## Student intake amendments
+- [x] Add invitation-authorized intake reads/updates and authenticated admin unlock controls without database changes.
+- [x] Reuse the required intake form with saved defaults and show the server's editability state.
+- [x] Verify typecheck, 30 validation/stage tests, signed-in admin desktop/mobile and released-row controls hidden; latest build OK.
+- [ ] Verify saved intake amendment and admin unlock end-to-end. Blocked: the connected database does not contain student_get_intake, student_update_intake or admin_set_intake_unlock; no database changes authorized. The only existing application is released.
+
 ## Admin invitation and application workspace
 - [x] Add one-time invitation link generation and rename the Applications statistic.
 - [x] Add stage-specific application actions, consent visibility and error toasts.
@@ -53,7 +59,7 @@
 - [x] Remove shared wallet and protect the admin route with server-validated roles.
 - [x] Verify public entry, mobile layout, invalid invite rejection, database access restrictions and student action validation.
 - [x] Verify signed-in provider → invite → consent → intake → unlock decision → deletion end-to-end.
-- [ ] Activate the requested admin account. Blocked: tran.bridgitte@gmail.com must register and confirm its email; verified-email assignment is configured.
+- [x] Verify the requested admin account is active; its signed-in Administration page loads.
 
 ## Scholarship-provider pilot MVP
 - [x] Enable Lovable Cloud.

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { adminApplicationActions, applicationCounts, applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isReleasedApplication } from "./application-schema";
+import { adminApplicationActions, applicationCounts, applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isReleasedApplication, canAdminUnlockIntake } from "./application-schema";
 
 describe("application pipeline", () => {
+  it("allows intake override controls on every stage except released", () => {
+    expect(applicationStageSchema.options.filter(canAdminUnlockIntake)).toEqual(["shortlisted", "invited", "accepted", "declined", "submitted", "returned", "checked"]);
+    expect(canAdminUnlockIntake("released")).toBe(false);
+  });
   it("allows shortlisted applications to be marked invited", () => {
     expect(adminApplicationActions.shortlisted.map((action) => action.to)).toEqual(["invited"]);
   });

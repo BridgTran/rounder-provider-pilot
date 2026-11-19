@@ -36,6 +36,10 @@ export const intakeSchema = z.object({
   equityTags: z.array(z.enum(["High External Workload 20+ hrs", "Primary Caretaker", "First-Gen Student", "Regional/Remote Background", "Low-SES Postcode"])).max(5).default([]),
 });
 export type IntakeInput = z.infer<typeof intakeSchema>;
+export const studentIntakeTokenSchema = z.object({ token: z.string().regex(/^[a-f0-9]{64}$/) });
+export const studentIntakeUpdateSchema = studentIntakeTokenSchema.extend({ payload: intakeSchema });
+export const storedIntakeSchema = intakeSchema.extend({ editable: z.boolean() });
+export const adminIntakeUnlockSchema = z.object({ studentId: z.string().uuid(), unlocked: z.boolean() });
 export const inviteActionSchema = z.discriminatedUnion("action", [
   z.object({ token: z.string().regex(/^[a-f0-9]{64}$/), action: z.enum(["read", "consent", "delete"]) }),
   z.object({ token: z.string().regex(/^[a-f0-9]{64}$/), action: z.literal("intake"), payload: intakeSchema }),

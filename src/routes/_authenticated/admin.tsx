@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { adminAdvanceApplication, adminIssueInvites, adminListApplications, getAdminOverview } from "@/lib/invite.functions";
-import { adminApplicationActions, adminInviteCountSchema, type AdminApplicationTarget } from "@/lib/application-schema";
+import { adminAdvanceApplication, adminIssueInvites, adminListApplications, adminSetIntakeUnlock, getAdminOverview } from "@/lib/invite.functions";
+import { adminApplicationActions, adminInviteCountSchema, canAdminUnlockIntake, type AdminApplicationTarget } from "@/lib/application-schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +34,8 @@ function AdminControls() {
   const { data: applications } = useSuspenseQuery(applicationsOptions);
   const [count, setCount] = useState("1");
   const [links, setLinks] = useState("");
+  const [unlockedStudents, setUnlockedStudents] = useState<Record<string, boolean>>({});
+  const setIntakeUnlock = useServerFn(adminSetIntakeUnlock);
   const onError = (error: Error) => toast.error(error.message);
   const invites = useMutation({
     mutationFn: (value: number) => adminIssueInvites({ data: { count: value } }),
@@ -46,6 +49,15 @@ function AdminControls() {
         queryClient.invalidateQueries({ queryKey: applicationsOptions.queryKey }),
         queryClient.invalidateQueries({ queryKey: adminOptions.queryKey }),
       ]);
+    },
+    onError,
+  });
+  const unlock = useMutation({
+    mutationFn: (data: { studentId: string; unlocked: boolean }) => setIntakeUnlock({ data }),
+    onSuccess: async ({ studentId, unlocked }) => {
+      setUnlockedStudents((previous) => ({ ...previous, [studentId]: unlocked }));
+      toast.success(unlocked ? "Student can edit their answers" : "Student answers locked");
+      await queryClient.invalidateQueries({ queryKey: applicationsOptions.queryKey });
     },
     onError,
   });
@@ -79,7 +91,7 @@ function AdminControls() {
             <td className="break-all px-3 py-4">{application.email || "—"}</td>
             <td className="px-3 py-4 capitalize">{application.stage}</td>
             <td className="px-3 py-4">{application.hasReleaseConsent ? "Recorded" : "Not recorded"}</td>
-            <td className="px-3 py-4"><div className="flex min-w-40 flex-wrap gap-2">{adminApplicationActions[application.stage].map((action) => <Button key={action.to} size="sm" variant="outline" disabled={advance.isPending} onClick={() => advance.mutate({ matchId: application.id, to: action.to })}>{action.label}</Button>)}</div></td>
+            <td className="px-3 py-4"><div className="flex min-w-40 flex-wrap gap-2">{adminApplicationActions[application.stage].map((action) => <Button key={action.to} size="sm" variant="outline" disabled={advance.isPending} onClick={() => advance.mutate({ matchId: application.id, to: action.to })}>{action.label}</Button>)}{canAdminUnlockIntake(application.stage) && <Button size="sm" variant="outline" disabled={unlock.isPending} onClick={() => unlock.mutate({ studentId: application.student_id, unlocked: !(unlockedStudents[application.student_id] ?? application.intakeUnlocked) })}>{(unlockedStudents[application.student_id] ?? application.intakeUnlocked) ? "Lock student answers" : "Allow student to edit"}</Button>}</div></td>
           </tr>)}</tbody>
         </table>
       </div>}

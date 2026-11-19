@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inviteActionSchema, intakeSchema } from "./invite-schema";
+import { inviteActionSchema, intakeSchema, studentIntakeUpdateSchema, storedIntakeSchema, adminIntakeUnlockSchema } from "./invite-schema";
 
 describe("private student actions", () => {
   const intake = { legalName: "Test Applicant", email: "test@example.com", phone: "", degree: "Science", discipline: "Science", rawGpa: 75, visaStatus: "Citizen", yearLevel: 1, studyMode: "Internal", studyLoad: 100, birthYear: 2000, firstDegreeCompletionYear: 2025, firstUndergraduateDegree: "yes", intendsFurtherStudy: "yes", communityContribution: "no", gender: "female", institution: "University of Sydney", degreeLevel: "not enrolled" };
@@ -48,6 +48,23 @@ describe("private student actions", () => {
     expect(intakeSchema.safeParse({ ...intake, discipline: "Unknown" }).success).toBe(false);
   });
   const token = "a".repeat(64);
+  it("validates amendments with the same required intake answers", () => {
+    expect(studentIntakeUpdateSchema.safeParse({ token, payload: intake }).success).toBe(true);
+    expect(studentIntakeUpdateSchema.safeParse({ token, payload: { ...intake, gender: "" } }).success).toBe(false);
+    expect(studentIntakeUpdateSchema.safeParse({ token: "candidate-code", payload: intake }).success).toBe(false);
+  });
+  it("requires the server editability flag on saved answers", () => {
+    expect(storedIntakeSchema.parse({ ...intake, editable: false }).editable).toBe(false);
+    expect(storedIntakeSchema.parse({ ...intake, editable: true }).editable).toBe(true);
+    expect(storedIntakeSchema.safeParse(intake).success).toBe(false);
+  });
+  it("requires a student UUID and a boolean for admin answer unlocking", () => {
+    const studentId = "00000000-0000-4000-8000-000000031076";
+    expect(adminIntakeUnlockSchema.safeParse({ studentId, unlocked: true }).success).toBe(true);
+    expect(adminIntakeUnlockSchema.safeParse({ studentId, unlocked: false }).success).toBe(true);
+    expect(adminIntakeUnlockSchema.safeParse({ studentId: "candidate-code", unlocked: true }).success).toBe(false);
+    expect(adminIntakeUnlockSchema.safeParse({ studentId, unlocked: "true" }).success).toBe(false);
+  });
   it("requires a private invite credential, not a candidate code", () => {
     expect(inviteActionSchema.safeParse({ token: "CANDIDATE #AU-31076", action: "consent" }).success).toBe(false);
     expect(inviteActionSchema.safeParse({ token, action: "consent" }).success).toBe(true);

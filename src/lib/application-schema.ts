@@ -16,6 +16,7 @@ export const adminApplicationActions: Record<ApplicationStage, readonly { to: Ad
 export const adminInviteCountSchema = z.object({ count: z.number().int().min(1).max(200) });
 export const advanceApplicationSchema = z.object({ matchId: z.string().uuid(), to: z.enum(["invited", "submitted", "returned", "checked", "released"]) });
 export const isReleasedApplication = (stage: ApplicationStage) => stage === "released";
+export const canAdminUnlockIntake = (stage: ApplicationStage) => stage !== "released";
 export const applicationStageLabels: Record<ApplicationStage, string> = {
   shortlisted: "Shortlisted, Rounder will contact the student",
   invited: "Student invited",
