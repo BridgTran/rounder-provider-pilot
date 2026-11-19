@@ -1,9 +1,12 @@
 import { z } from "zod";
-import { australianStates, degreeLevels } from "./fund-schema";
+import { australianStates, studentLevels, disciplines } from "./fund-schema";
 
 export const intakeSchema = z.object({
+  firstDegreeCompletionYear: z.number().int().min(1990).max(new Date().getUTCFullYear() + 1).nullable().default(null),
+  intendsFurtherStudy: z.enum(["", "yes", "no"]).default(""),
+  communityContribution: z.enum(["", "yes", "no"]).default(""),
   gender: z.enum(["", "female", "male", "non-binary"]).default(""),
-  degreeLevel: z.enum(["", ...degreeLevels]).default(""),
+  degreeLevel: z.enum(["", ...studentLevels]).default(""),
   firstUndergraduateDegree: z.enum(["", "yes", "no"]).default(""),
   yearsCompleted: z.number().min(0).max(20).nullable().default(null),
   campusState: z.enum(["", ...australianStates]).default(""),
@@ -18,10 +21,10 @@ export const intakeSchema = z.object({
   email: z.string().email().max(254),
   phone: z.string().max(40),
   degree: z.string().trim().min(1).max(200),
-  discipline: z.enum(["Law", "Engineering", "Business", "Medicine", "Arts"]),
+  discipline: z.enum(disciplines),
   rawGpa: z.number().min(0).max(100),
-  weeklyHours: z.number().min(0).max(168),
-  workSector: z.enum(["Hospitality", "Retail", "Hospital / Clinical Care", "Administration", "Tutoring", "Trades", "Other"]),
+  weeklyHours: z.number().min(0).max(168).default(0),
+  workSector: z.enum(["Hospitality", "Retail", "Hospital / Clinical Care", "Administration", "Tutoring", "Trades", "Other"]).default("Other"),
   visaStatus: z.enum(["Citizen", "Permanent Resident", "Student Visa 500"]),
   yearLevel: z.number().int().min(1).max(6),
   studyMode: z.enum(["Internal", "Online", "Hybrid"]),

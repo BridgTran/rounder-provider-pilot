@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { studentInviteAction } from "@/lib/invite.functions";
 import { intakeSchema } from "@/lib/invite-schema";
-import { australianStates, degreeLevels } from "@/lib/fund-schema";
+import { australianStates, studentLevels, disciplines } from "@/lib/fund-schema";
 import { australianUniversities } from "@/lib/universities";
 
 const inviteOptions = (token: string) => queryOptions({ queryKey: ["student-invite", token], queryFn: () => studentInviteAction({ data: { token, action: "read" } }), retry: false });
@@ -24,14 +24,14 @@ export const Route = createFileRoute("/invite/$token")({
 });
 
 const selections = [
-  ["discipline", "Discipline", ["Law", "Engineering", "Business", "Medicine", "Arts"]],
+  ["discipline", "Discipline", disciplines],
   ["workSector", "Work sector", ["Other", "Hospitality", "Retail", "Hospital / Clinical Care", "Administration", "Tutoring", "Trades"]],
   ["visaStatus", "Citizenship / visa", ["Citizen", "Permanent Resident", "Student Visa 500"]],
   ["yearLevel", "Year level", ["1", "2", "3", "4", "5", "6"]],
   ["studyMode", "Study mode", ["Internal", "Online", "Hybrid"]],
   ["studyLoad", "Study load (%)", ["100", "75", "50", "25"]],
   ["gender", "Gender (optional)", ["", "female", "male", "non-binary"]],
-  ["degreeLevel", "Degree level (optional)", ["", ...degreeLevels]],
+  ["degreeLevel", "Degree level (optional)", ["", ...studentLevels]],
   ["firstUndergraduateDegree", "First undergraduate degree (optional)", ["", "yes", "no"]],
   ["campusState", "Campus state (optional)", ["", ...australianStates]],
   ["institution", "Institution (optional)", ["", ...australianUniversities]],
@@ -62,7 +62,7 @@ function StudentInvitation() {
     <p className="eyebrow text-muted-foreground">Private scholarship invitation</p>
     <h1 className="mt-3 text-3xl">{!data.consented ? "Your consent" : !data.submitted ? "Student intake" : "Your unlock requests"}</h1>
     {!data.consented ? <section className="mt-6 space-y-5">
-      <p className="text-muted-foreground">Your academic and life-context answers will be stored for scholarship matching. Signed-in scholarship providers can view your anonymous profile. Your name, email and phone stay private until you accept a specific provider’s unlock request.</p>
+      <p className="text-muted-foreground">Your academic and life-context answers will be stored for scholarship matching. Signed-in scholarship providers can view your anonymous profile. Your name, email and phone stay private until you consent and Rounder checks and releases your application.</p>
       <p className="text-muted-foreground">You can decline any request or delete your data here. Keep this private link safe: anyone with it can manage your consent and requests. It expires after 30 days. Deletion cannot remove copies already shared with a provider.</p>
       <label className="flex items-start gap-3"><Checkbox checked={consent} onCheckedChange={(checked) => setConsent(checked === true)} aria-label="I consent to scholarship matching" /><span>I consent to storing my answers for anonymous scholarship matching and understand that contact sharing requires my separate approval.</span></label>
       <Button disabled={!consent || action.isPending} onClick={() => action.mutate({ token, action: "consent" })}>Consent and continue</Button>
@@ -81,11 +81,11 @@ function StudentInvitation() {
       {formError && <p role="alert" className="text-destructive">{formError}</p>}
       <Button type="submit" disabled={action.isPending}>{action.isPending ? "Saving…" : "Submit intake"}</Button>
     </form> : <section className="mt-8 space-y-5">
-      <p className="text-muted-foreground">Your anonymous profile is available for scholarship matching. Contact details are shared only with providers you accept.</p>
+      <p className="text-muted-foreground">Your anonymous profile is available for scholarship matching. Contact details are shared only after your consent and Rounder’s review and release.</p>
       <Button variant="outline" disabled={action.isPending} onClick={() => action.mutate({ token, action: "read" })}>Refresh requests</Button>
       {data.requests.length === 0 && <p className="border-t border-border pt-5 text-muted-foreground">No unlock requests yet.</p>}
-      {data.requests.map((request) => <article key={request.id} className="rounded-lg border border-border p-5"><h2 className="text-lg">{request.organisation}</h2><p className="mt-2 text-sm capitalize text-muted-foreground">{request.status}</p>
-        {request.status === "pending" ? <div className="mt-4 flex flex-wrap gap-3"><Button disabled={action.isPending} onClick={() => action.mutate({ token, action: "respond", payload: { matchId: request.id, decision: "accept" } })}>Accept and share contact details</Button><Button variant="outline" disabled={action.isPending} onClick={() => action.mutate({ token, action: "respond", payload: { matchId: request.id, decision: "decline" } })}>Decline</Button></div> : request.status === "accepted" ? <div className="mt-4 text-sm"><p>{request.contactPerson}</p><p className="break-all">{request.email}</p><p className="mt-2 text-muted-foreground">Your name, email and phone are shared with this provider.</p></div> : <p className="mt-3 text-sm text-muted-foreground">Your contact details were not shared.</p>}
+      {data.requests.map((request) => <article key={request.id} className="rounded-lg border border-border p-5"><h2 className="text-lg">{request.fundTitle ?? request.organisation}</h2><p className="mt-2 text-sm capitalize text-muted-foreground">{request.stage}</p>
+        {request.stage === "invited" ? <div className="mt-4 flex flex-wrap gap-3"><Button disabled={action.isPending} onClick={() => action.mutate({ token, action: "respond", payload: { matchId: request.id, decision: "accept" } })}>Accept and consent to release after review</Button><Button variant="outline" disabled={action.isPending} onClick={() => action.mutate({ token, action: "respond", payload: { matchId: request.id, decision: "decline" } })}>Decline</Button></div> : request.stage === "released" ? <div className="mt-4 text-sm"><p>{request.contactPerson}</p><p className="break-all">{request.email}</p><p className="mt-2 text-muted-foreground">Your name, email and phone are shared with this provider.</p></div> : <p className="mt-3 text-sm text-muted-foreground">{request.stage === "declined" ? "Your contact details were not shared." : "Your contact details remain private until Rounder checks and releases your application."}</p>}
       </article>)}
     </section>}
     <section className="mt-12 border-t border-border pt-6"><h2 className="text-lg">Delete my data</h2>{confirmDelete ? <div className="mt-4 space-y-4"><p className="text-sm text-muted-foreground">Permanently remove your profile, contact details and all unlock requests?</p><div className="flex gap-3"><Button variant="destructive" disabled={action.isPending} onClick={() => action.mutate({ token, action: "delete" })}>Confirm deletion</Button><Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button></div></div> : <Button variant="outline" className="mt-4" onClick={() => setConfirmDelete(true)}>Delete my data</Button>}</section>

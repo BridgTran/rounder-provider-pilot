@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
@@ -62,13 +63,13 @@ function TargetDot(props: any) {
 
 export function CaseStudyDrawer({
   candidate,
-  credits,
+  canShortlist,
   matched,
   onClose,
   onRequestMatch,
 }: {
   candidate: Candidate | null;
-  credits: number;
+  canShortlist: boolean;
   matched: boolean;
   onClose: () => void;
   onRequestMatch: (code: string) => void;
@@ -109,13 +110,13 @@ export function CaseStudyDrawer({
               Full Anonymous Case Study · {candidate.degree} · {candidate.year}
             </p>
           </div>
-          <button
+          <Button
             onClick={onClose}
             aria-label="Close case study"
             className="rounded-full border border-charcoal-foreground/30 px-3 py-1.5 text-xs font-bold text-charcoal-foreground transition hover:bg-charcoal-foreground/10"
           >
             ✕ Close
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-6 p-5 sm:p-6">
@@ -264,21 +265,17 @@ export function CaseStudyDrawer({
             </blockquote>
           </section>
 
-          <button
+          <Button
             onClick={() => onRequestMatch(candidate.code)}
-            disabled={matched}
+            disabled={matched || !canShortlist}
             className={`w-full rounded-full px-4 py-3.5 text-sm font-black transition ${
               matched
                 ? "border-2 border-lime bg-lime/20 text-charcoal"
                 : "bg-lime text-lime-foreground hover:brightness-105 disabled:opacity-50"
             }`}
           >
-            {matched
-              ? "🤝 Handshake Pending — 1 Credit Used"
-              : credits > 0
-                ? "🪙 REQUEST MATCH & UNLOCK | 1 Credit"
-                : "No Match Credits Remaining"}
-          </button>
+            {matched ? "Already shortlisted" : "Shortlist candidate"}
+          </Button>
         </div>
       </aside>
     </div>

@@ -2,10 +2,15 @@ import { z } from "zod";
 
 export const australianStates = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"] as const;
 export const degreeLevels = ["undergraduate", "honours", "postgraduate coursework", "postgraduate research"] as const;
+export const studentLevels = [...degreeLevels, "not enrolled"] as const;
+export const disciplines = ["Law", "Engineering", "Business", "Medicine", "Arts", "Science", "Health", "Education", "IT", "Other"] as const;
 export const ruleStrengthSchema = z.enum(["Required", "Preferred"]);
 export const attestationText = (title: string) => `I confirm these rules reflect our trust deed and that I am authorised to set them on behalf of ${title || "[fund name]"}.`;
 
 export const fundRulesSchema = z.object({
+  completionYear: z.number().int().min(1990).max(2100).nullable().default(null),
+  furtherStudy: z.enum(["yes", "any"]).default("any"),
+  communityContribution: z.enum(["yes", "any"]).default("any"),
   strengths: z.record(ruleStrengthSchema).default({}),
   gender: z.enum(["any", "female", "male", "non-binary"]).default("any"),
   degreeLevel: z.enum(["any", ...degreeLevels]).default("any"),
@@ -36,7 +41,7 @@ export const fundSaveSchema = z.object({
   title: z.string().trim().min(1, "Give your fund a title first").max(200),
   orgClass: z.enum(["", "Charitable foundation", "Private trust", "Corporate CSR", "Other"]),
   maximumAwardValue: z.number().int().nonnegative().nullable(),
-  discipline: z.enum(["All Disciplines", "Law", "Engineering", "Business", "Medicine", "Arts"]),
+  discipline: z.enum(["All Disciplines", ...disciplines]),
   lifeLoad: z.array(z.enum(["High External Workload 20+ hrs", "Primary Caretaker", "Regional/Remote Background"])),
   rules: fundRulesSchema,
   deedPath: z.string().max(500).nullable(),

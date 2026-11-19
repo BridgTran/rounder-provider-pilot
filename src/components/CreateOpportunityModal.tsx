@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Save, Check, Upload, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { eligibleStudents, fundHistory, universityList } from "@/lib/fund.functions";
-import { emptyFundRules, fundSaveSchema, attestationText, australianStates, degreeLevels, type FundRules, type FundSaveInput } from "@/lib/fund-schema";
+import { disciplines as pilotDisciplines, emptyFundRules, fundSaveSchema, attestationText, australianStates, degreeLevels, type FundRules, type FundSaveInput } from "@/lib/fund-schema";
 import type { ScholarshipFund } from "@/lib/provider.functions";
 import { FundCriterion, FundSelect, fundInputClass } from "./FundCriterion";
 const lifeLoadOptions = [
@@ -19,7 +19,7 @@ const lifeLoadOptions = [
     { id: "caretaker", label: "Primary Caretaker Responsibilities", tag: "Primary Caretaker" },
     { id: "regional", label: "Regional / Remote Context", tag: "Regional/Remote Background" },
 ];
-const disciplines = ["All Disciplines", "Law", "Engineering", "Business", "Medicine", "Arts"];
+const disciplines = ["All Disciplines", ...pilotDisciplines];
 const finalistRequirements = [
     { id: "written-essay", label: "Written Essay" },
     { id: "video-snippet", label: "90-Second Video Snippet" },

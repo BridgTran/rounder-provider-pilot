@@ -7,6 +7,7 @@
  * the accepted-match RLS policy on student_identities.
  */
 
+import { applicationStageSchema, isReleasedApplication, type ApplicationStage } from "./application-schema";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
@@ -105,10 +106,12 @@ export interface StudentIdentity {
 
 export interface ProviderMatch {
   id: string;
+  fundId: string | null;
   studentId: string;
   status: "pending" | "accepted" | "declined";
+  stage: ApplicationStage;
   acceptedAt: string | null;
-  /** Present only after the student accepted (RLS-gated). */
+  /** Present only after the application is released (RLS-gated). */
   identity: StudentIdentity | null;
 }
 
@@ -118,7 +121,6 @@ export interface ProviderDashboard {
   isOwner: boolean;
   organisationName: string;
   contactPerson: string;
-  credits: number;
   scholarships: ScholarshipFund[];
   matches: ProviderMatch[];
 }
@@ -130,7 +132,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
     // Joining is automatic, but only the server-verified invited email grants access.
     const { error: invitationError } = await supabase.rpc("claim_organisation_invitations");
     if (invitationError) throw new Error(invitationError.message);
-    const [profileRes, creditsRes, scholarshipsRes, matchesRes, identitiesRes] =
+    const [profileRes, scholarshipsRes, matchesRes, identitiesRes] =
       await Promise.all([
         supabase
           .from("profiles")
@@ -138,16 +140,11 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
           .eq("id", userId)
           .maybeSingle(),
         supabase
-          .from("provider_credits")
-          .select("balance")
-          .eq("provider_id", userId)
-          .maybeSingle(),
-        supabase
           .from("scholarships")
           .select("*")
           .order("created_at", { ascending: false }),
-        supabase.from("matches").select("id, student_id, status, accepted_at, declined_at"),
-        // RLS returns identities only for students with an accepted match.
+        supabase.from("matches").select("id, fund_id, student_id, status, stage, accepted_at, declined_at"),
+        // RLS returns identities only for students with an released application.
         supabase.from("student_identities").select("*"),
       ]);
 
@@ -166,14 +163,13 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
     const orgId = profileRes.data?.organisation_id;
     const org = orgId ? await supabase.from("provider_organisations").select("name").eq("id",orgId).maybeSingle() : null;
     const members = orgId ? await supabase.from("organisation_members").select("user_id,member_role").eq("organisation_id",orgId) : null;
-    if (profileRes.error || creditsRes.error || scholarshipsRes.error || matchesRes.error || identitiesRes.error) throw new Error("Could not load provider workspace");
+    if (profileRes.error || scholarshipsRes.error || matchesRes.error || identitiesRes.error) throw new Error("Could not load provider workspace");
     return {
       organisationId: orgId ?? null,
       memberCount: members?.data?.length ?? 0,
       isOwner: members?.data?.some((m) => m.user_id === userId && m.member_role === "owner") ?? false,
       organisationName: org?.data?.name ?? profileRes.data?.organisation_name ?? "",
       contactPerson: profileRes.data?.contact_person ?? "",
-      credits: creditsRes.data?.balance ?? 0,
       scholarships: (scholarshipsRes.data ?? []).map((s) => ({
         rules: fundRulesSchema.safeParse(s.rules).success ? fundRulesSchema.parse(s.rules) : emptyFundRules(),
         status: s.status === "active" ? "active" : "draft",
@@ -194,19 +190,21 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
       })),
       matches: (matchesRes.data ?? []).map((m) => ({
         id: m.id,
+        fundId: m.fund_id,
         studentId: m.student_id,
+        stage: applicationStageSchema.parse(m.stage),
         status: m.declined_at ? "declined" : m.status as "pending" | "accepted",
         acceptedAt: m.accepted_at,
-        identity: identityByStudent.get(m.student_id) ?? null,
+        identity: isReleasedApplication(applicationStageSchema.parse(m.stage)) ? identityByStudent.get(m.student_id) ?? null : null,
       })),
     };
   });
 
-export const requestMatchFn = createServerFn({ method: "POST" })
+export const shortlistCandidateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { studentId: string; fundId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: match, error } = await context.supabase.rpc("request_fund_unlock", {
+    const { data: match, error } = await context.supabase.rpc("shortlist_candidate", {
       p_student_id: data.studentId,
       p_fund_id: data.fundId,
     });

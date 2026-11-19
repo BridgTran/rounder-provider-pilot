@@ -12,10 +12,11 @@
 ## Architecture
 
 - Scholarship writes use an organisation-member-scoped transactional RPC with optimistic version checks and fresh attestation on activation and subsequent saves; triggers snapshot every save into immutable versions and events. Why: direct writes must not bypass authority confirmation or overwrite history.
-- Eligibility uses a private SQL evaluator shared by discovery and fund-scoped unlocks; Required rules gate and Preferred rules only contribute counts. Why: client ranking or legacy matching must not bypass fund rules.
+- Eligibility uses a private SQL evaluator shared by discovery and fund-scoped shortlisting; Required rules gate and Preferred rules only contribute counts. Why: client ranking must not bypass fund rules.
 - Deed PDFs use immutable provider-prefixed objects in private storage; short-lived signed links are owner-authorized. Why: historical versions must retain their original private document.
 
-- Provider data is authenticated-only; student PII remains protected by accepted-match RLS, and provider-only credit spending remains atomic through request_match. Why: removing the shared wallet must not bypass the existing per-provider unlock charge.
+- Provider data is authenticated-only; candidate actions use shortlist_candidate without credits, and providers display identities only at the released stage. Why: acceptance alone does not authorize contact disclosure.
+- Application stages and administrator action inputs share browser-safe validation; privileged application reads verify has_role before dynamically loading the admin client. Why: stage handling stays consistent and student identities remain admin-only before release.
 - The authenticated provider workspace remains at /corporate; / resolves to provider sign-in or workspace, while /invite/$token is the only student surface. Why: private invitations replace public student browsing without breaking provider URLs.
 - Student invitation secrets are generated server-side, stored only as hashes, and checked inside a narrowly scoped transactional RPC for consent, intake, per-match decisions and cascading deletion. Why: candidate codes and client state must never authorize student actions.
 - Administrative roles live in public.user_roles and getAdminOverview validates has_role before privileged aggregate reads. Why: neither provider signup metadata nor browser storage can confer admin access.

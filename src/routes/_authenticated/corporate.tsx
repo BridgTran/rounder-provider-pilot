@@ -9,10 +9,10 @@ import { CaseStudyDrawer } from "@/components/CaseStudyDrawer";
 import { CreateOpportunityModal } from "@/components/CreateOpportunityModal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getProviderDashboard, listStudents, requestMatchFn, type CandidateRecord, type ScholarshipFund, } from "@/lib/provider.functions";
+import { getProviderDashboard, listStudents, shortlistCandidateFn, type CandidateRecord, type ScholarshipFund, } from "@/lib/provider.functions";
 import { saveFund, fundEligibilityResults } from "@/lib/fund.functions";
 import { inviteTeamMember } from "@/lib/organisation.functions";
-import { emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
+import { disciplines, emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 type DrawerCandidate = {
     code: string;
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/corporate")({
             { title: "Scholarship Provider Dashboard — ROUNDER HQ" },
             {
                 name: "description",
-                content: "Filter anonymized Australian candidates by structured eligibility criteria — unlock matches with Match Credits.",
+                content: "Filter anonymized Australian candidates by structured eligibility criteria and shortlist candidates for reviewed applications.",
             },
             { property: "og:title", content: "Scholarship Provider Dashboard — ROUNDER HQ" },
             {
@@ -51,7 +51,6 @@ const lifeLoadOptions = [
     "Regional/Remote Background",
     "Low-SES Postcode",
 ];
-const disciplines = ["Law", "Engineering", "Business", "Medicine", "Arts"];
 const visaOptions = ["Any Status", "Citizen", "Permanent Resident", "Student Visa 500"];
 const yearOptions = ["Any Year", "1", "2", "3", "4"];
 const studyModeOptions: StudyMode[] = ["Internal", "Online", "Hybrid"];
@@ -80,7 +79,7 @@ function GateSelect({ label, value, onChange, options, editorial = false, }: {
     label: string;
     value: string;
     onChange: (v: string) => void;
-    options: string[];
+    options: readonly string[];
     editorial?: boolean;
 }) {
     return (<label className="block">
@@ -151,7 +150,6 @@ function CorporateHub() {
     });
     const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
     const dashboard = dashboardQuery.data;
-    const credits = dashboard?.credits ?? 0;
     const funds = useMemo(() => dashboard?.scholarships ?? [], [dashboard?.scholarships]);
     const appliedFund = funds.find((f) => f.id === activeFundId && f.status === "active");
     const eligibleQuery = useQuery({ queryKey: ["active-fund-eligible", appliedFund?.id, appliedFund?.version], queryFn: () => fundEligibilityResults({ data: { rules: appliedFund?.rules ?? emptyFundRules(), discipline: appliedFund?.discipline ?? "All Disciplines", lifeLoad: appliedFund?.lifeLoad ?? [] } }), enabled: !!appliedFund });
@@ -161,15 +159,13 @@ function CorporateHub() {
         queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] }),
     ]);
     const requestMutation = useMutation({
-        mutationFn: (studentId: string) => requestMatchFn({ data: { studentId, fundId: appliedFund?.id ?? "" } }),
+        mutationFn: (studentId: string) => shortlistCandidateFn({ data: { studentId, fundId: appliedFund?.id ?? "" } }),
         onSuccess: async () => {
             await invalidateAll();
-            toast.success("Handshake pending", {
-                description: "The request is available through the student’s private invite. 1 provider credit used.",
-            });
+            toast.success("Candidate shortlisted");
         },
         onError: (error) => {
-            toast.error("Match request failed", { description: error.message });
+            toast.error("Shortlisting failed", { description: error.message });
         },
     });
     const publishMutation = useMutation({
@@ -230,11 +226,11 @@ function CorporateHub() {
     const studentByCode = (code: string) => students.find((s) => s.candidateCode === code);
     const matchFor = (code: string) => {
         const student = studentByCode(code);
-        return student ? matches.find((m) => m.studentId === student.id) : undefined;
+        return student && appliedFund ? matches.find((m) => m.studentId === student.id && m.fundId === appliedFund.id) : undefined;
     };
     const statusOf = (code: string): FeedStatus => {
-        const status = matchFor(code)?.status;
-        return status === "accepted" ? "revealed" : status === "declined" ? "declined" : status === "pending" ? "active" : "passive";
+        const stage = matchFor(code)?.stage;
+        return stage === "released" ? "revealed" : stage === "declined" ? "declined" : stage ? "active" : "passive";
     };
     const requestMatch = (code: string) => {
         const student = studentByCode(code);
@@ -278,8 +274,8 @@ function CorporateHub() {
             {([
             [String(students.length), "Eligible Profiles"],
             [String(ranked.length), "IRTO Finalists"],
-            [String(matches.length), "Match Requests"],
-            [String(matches.filter((m) => m.status === "accepted").length), "Accepted Unlocks"],
+            [String(matches.length), "Applications"],
+            [String(matches.filter((m) => m.stage === "released").length), "Released Applications"],
         ]).map(([value, label]) => (<div key={label} className={"bg-background px-4 py-6"}>
                 <dt className={`text-xs font-medium ${"text-muted-foreground"}`}>{label}</dt>
                 <dd className={`mt-2 font-display text-3xl font-black ${"text-charcoal"}`}>{value}</dd>
@@ -481,15 +477,11 @@ function CorporateHub() {
                 })} className={`h-auto min-h-9 whitespace-normal text-xs font-bold ${"border-charcoal/25 text-charcoal hover:bg-charcoal/5"}`}>
                     ⚙️ View Full Anonymous Case Study
                   </Button>
-                  <Button onClick={() => requestMatch(c.candidateCode)} disabled={!appliedFund || status !== "passive" || credits < 1 || requestMutation.isPending} className={`h-auto min-h-9 whitespace-normal text-xs font-black ${status !== "passive"
+                  <Button onClick={() => requestMatch(c.candidateCode)} disabled={!appliedFund || status !== "passive" || requestMutation.isPending} className={`h-auto min-h-9 whitespace-normal text-xs font-black ${status !== "passive"
                     ?
                         "border-2 border-lime bg-lime/20 text-charcoal"
                     : "bg-lime text-lime-foreground hover:brightness-105"}`}>
-                    {status === "declined" ? "Request declined" : revealed
-                    ? "🤝 Handshake Complete"
-                    : status === "active"
-                        ? "🤝 Handshake Pending"
-                        : "🪙 REQUEST MATCH & UNLOCK | 1 Credit"}
+                    {match ? `Application: ${match.stage}` : "Shortlist candidate"}
                   </Button>
                 </div>
               </article>);
@@ -497,7 +489,7 @@ function CorporateHub() {
         </section>
       </div>
 
-      <CaseStudyDrawer candidate={caseStudy} credits={credits} matched={caseStudy ? statusOf(caseStudy.code) !== "passive" : false} onClose={() => setCaseStudy(null)} onRequestMatch={requestMatch}/>
+      <CaseStudyDrawer candidate={caseStudy} canShortlist={!!appliedFund && !requestMutation.isPending} matched={caseStudy ? statusOf(caseStudy.code) !== "passive" : false} onClose={() => setCaseStudy(null)} onRequestMatch={requestMatch}/>
 
       {createOpen && <CreateOpportunityModal key={editingFund?.id ?? "new"} fund={editingFund} open={createOpen} onOpenChange={setCreateOpen} onPublish={handlePublish}/>}
       </div>

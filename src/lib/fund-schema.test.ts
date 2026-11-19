@@ -3,6 +3,25 @@ import { emptyFundRules, fundSaveSchema, fundRulesSchema } from "./fund-schema";
 
 const draft = () => ({ title: "Pilot", orgClass: "Private trust", maximumAwardValue: 25000, discipline: "All Disciplines", lifeLoad: [], rules: emptyFundRules(), deedPath: null, activate: false, confirmed: false });
 describe("Deed-backed fund rules", () => {
+  it("limits completion year to nullable integers from 1990 to 2100", () => {
+    expect(emptyFundRules().completionYear).toBe(null);
+    for (const completionYear of [null, 1990, 2100]) expect(fundRulesSchema.safeParse({ completionYear }).success).toBe(true);
+    for (const completionYear of [1989, 2101, 2026.5]) expect(fundRulesSchema.safeParse({ completionYear }).success).toBe(false);
+  });
+  it("permits only yes or any for further study", () => {
+    expect(emptyFundRules().furtherStudy).toBe("any");
+    expect(fundRulesSchema.safeParse({ furtherStudy: "yes" }).success).toBe(true);
+    expect(fundRulesSchema.safeParse({ furtherStudy: "no" }).success).toBe(false);
+  });
+  it("permits only yes or any for community contribution", () => {
+    expect(emptyFundRules().communityContribution).toBe("any");
+    expect(fundRulesSchema.safeParse({ communityContribution: "yes" }).success).toBe(true);
+    expect(fundRulesSchema.safeParse({ communityContribution: "no" }).success).toBe(false);
+  });
+  it("accepts all ten pilot disciplines and All Disciplines", () => {
+    for (const discipline of ["All Disciplines", "Law", "Engineering", "Business", "Medicine", "Arts", "Science", "Health", "Education", "IT", "Other"]) expect(fundSaveSchema.safeParse({ ...draft(), discipline }).success).toBe(true);
+    expect(fundSaveSchema.safeParse({ ...draft(), discipline: "Unknown" }).success).toBe(false);
+  });
   it("accepts degree-level criteria without inventing a level from a degree title", () => {
     expect(fundRulesSchema.safeParse({degreeLevel:"undergraduate"}).success).toBe(true);
     expect(fundRulesSchema.safeParse({degreeLevel:"certificate"}).success).toBe(false);

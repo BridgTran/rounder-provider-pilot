@@ -4,10 +4,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { inviteActionSchema } from "./invite-schema";
+import { applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema } from "./application-schema";
 
 const inviteStateSchema = z.object({
   consented: z.boolean().optional(), submitted: z.boolean().optional(), deleted: z.boolean().optional(),
-  requests: z.array(z.object({ id: z.string(), status: z.enum(["pending", "accepted", "declined"]), organisation: z.string(), contactPerson: z.string().nullable(), email: z.string().nullable() })).default([]),
+  requests: z.array(z.object({ id: z.string(), stage: applicationStageSchema.exclude(["shortlisted"]), fundTitle: z.string().nullable(), status: z.enum(["pending", "accepted", "declined"]), organisation: z.string(), contactPerson: z.string().nullable(), email: z.string().nullable() })).default([]),
 });
 
 export const createStudentInvite = createServerFn({ method: "POST" })
@@ -54,4 +55,49 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     ]);
     if (providers.error || students.error || requests.error) throw new Error("Could not load administration overview.");
     return { allowed: true as const, providers: providers.count ?? 0, students: students.count ?? 0, requests: requests.count ?? 0 };
+  });
+
+export const adminIssueInvites = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof adminInviteCountSchema>) => adminInviteCountSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: allowed, error: roleError } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (roleError || !allowed) throw new Error("Administrator sign-in required");
+    const tokens = Array.from({ length: data.count }, () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join(""));
+    const hashes = await Promise.all(tokens.map(async (token) => {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+      return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+    }));
+    const { error } = await context.supabase.rpc("admin_issue_student_invites", { p_token_hashes: hashes });
+    if (error) throw new Error(error.message);
+    return { tokens };
+  });
+
+export const adminListApplications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: allowed, error: roleError } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (roleError || !allowed) throw new Error("Administrator sign-in required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("matches")
+      .select("id, stage, stage_updated_at, release_consent_at, scholarships(title), students(candidate_code, student_identities(legal_name, email))")
+      .order("stage_updated_at", { ascending: false });
+    if (error) throw new Error("Could not load applications");
+    return (data ?? []).map((match) => ({
+      id: match.id, stage: applicationStageSchema.parse(match.stage), stageUpdatedAt: match.stage_updated_at,
+      hasReleaseConsent: match.release_consent_at !== null,
+      fundTitle: match.scholarships?.title ?? null,
+      candidateCode: match.students?.candidate_code ?? null,
+      legalName: match.students?.student_identities?.legal_name ?? null,
+      email: match.students?.student_identities?.email ?? null,
+    }));
+  });
+
+export const adminAdvanceApplication = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof advanceApplicationSchema>) => advanceApplicationSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: result, error } = await context.supabase.rpc("admin_advance_application", { p_match_id: data.matchId, p_to: data.to });
+    if (error) throw new Error(error.message);
+    return result;
   });

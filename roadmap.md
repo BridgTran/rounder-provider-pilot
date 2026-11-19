@@ -1,5 +1,12 @@
 # Current work
 
+## Application-stage code alignment
+- [x] Extend fund and intake models and validation tests; 39 tests pass.
+- [x] Remove provider credits and switch candidate actions to shortlisting with release-only identity display.
+- [x] Add authenticated administrator invitation and application functions without database changes.
+- [x] Verify signed-in desktop/mobile dashboard and fund form; automatic typecheck/build passes.
+- [ ] Verify shortlisting, invitation issuance and complete stage transitions end-to-end. Blocked: these checks would write database data, excluded by this request.
+
 ## Automatic team invitations
 - [x] Email a secure sign-in invitation using the default auth sender; signed-in send accepted by auth service.
 - [x] Automatically join verified invited accounts and remove the paste-and-join controls.
