@@ -83,7 +83,10 @@ export type Database = {
           id: string
           organisation_id: string | null
           provider_id: string
+          release_consent_at: string | null
           rule_version: number | null
+          stage: string
+          stage_updated_at: string
           status: string
           student_id: string
         }
@@ -95,7 +98,10 @@ export type Database = {
           id?: string
           organisation_id?: string | null
           provider_id: string
+          release_consent_at?: string | null
           rule_version?: number | null
+          stage?: string
+          stage_updated_at?: string
           status?: string
           student_id: string
         }
@@ -107,7 +113,10 @@ export type Database = {
           id?: string
           organisation_id?: string | null
           provider_id?: string
+          release_consent_at?: string | null
           rule_version?: number | null
+          stage?: string
+          stage_updated_at?: string
           status?: string
           student_id?: string
         }
@@ -418,12 +427,15 @@ export type Database = {
         Row: {
           campus_state: string | null
           centrelink_concession: boolean | null
+          community_contribution: boolean | null
           degree_level: string | null
+          first_degree_completion_year: number | null
           first_generation: boolean | null
           first_undergraduate_degree: boolean | null
           gender: string | null
           household_income: number | null
           institution: string | null
+          intends_further_study: boolean | null
           postcode: string | null
           region: string | null
           state: string | null
@@ -433,12 +445,15 @@ export type Database = {
         Insert: {
           campus_state?: string | null
           centrelink_concession?: boolean | null
+          community_contribution?: boolean | null
           degree_level?: string | null
+          first_degree_completion_year?: number | null
           first_generation?: boolean | null
           first_undergraduate_degree?: boolean | null
           gender?: string | null
           household_income?: number | null
           institution?: string | null
+          intends_further_study?: boolean | null
           postcode?: string | null
           region?: string | null
           state?: string | null
@@ -448,12 +463,15 @@ export type Database = {
         Update: {
           campus_state?: string | null
           centrelink_concession?: boolean | null
+          community_contribution?: boolean | null
           degree_level?: string | null
+          first_degree_completion_year?: number | null
           first_generation?: boolean | null
           first_undergraduate_degree?: boolean | null
           gender?: string | null
           household_income?: number | null
           institution?: string | null
+          intends_further_study?: boolean | null
           postcode?: string | null
           region?: string | null
           state?: string | null
@@ -661,6 +679,34 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      admin_advance_application: {
+        Args: { p_match_id: string; p_to: string }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          declined_at: string | null
+          fund_id: string | null
+          id: string
+          organisation_id: string | null
+          provider_id: string
+          release_consent_at: string | null
+          rule_version: number | null
+          stage: string
+          stage_updated_at: string
+          status: string
+          student_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_issue_student_invites: {
+        Args: { p_token_hashes: string[] }
+        Returns: number
+      }
       claim_organisation_invitations: { Args: never; Returns: number }
       create_organisation_invite: {
         Args: { p_email: string; p_hash: string }
@@ -721,7 +767,10 @@ export type Database = {
           id: string
           organisation_id: string | null
           provider_id: string
+          release_consent_at: string | null
           rule_version: number | null
+          stage: string
+          stage_updated_at: string
           status: string
           student_id: string
         }
@@ -742,7 +791,10 @@ export type Database = {
           id: string
           organisation_id: string | null
           provider_id: string
+          release_consent_at: string | null
           rule_version: number | null
+          stage: string
+          stage_updated_at: string
           status: string
           student_id: string
         }
@@ -772,6 +824,30 @@ export type Database = {
           p_input: Json
         }
         Returns: Json
+      }
+      shortlist_candidate: {
+        Args: { p_fund_id: string; p_student_id: string }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          declined_at: string | null
+          fund_id: string | null
+          id: string
+          organisation_id: string | null
+          provider_id: string
+          release_consent_at: string | null
+          rule_version: number | null
+          stage: string
+          stage_updated_at: string
+          status: string
+          student_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       student_invite_action: {
         Args: { p_action: string; p_payload?: Json; p_token: string }

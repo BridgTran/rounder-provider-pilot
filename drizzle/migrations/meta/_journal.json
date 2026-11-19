@@ -78,6 +78,13 @@
       "when": 1794179910116,
       "tag": "0010_automatic_verified_team_join",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795066401071,
+      "tag": "0011_jamieson_pilot_pipeline",
+      "breakpoints": true
     }
   ]
 }
