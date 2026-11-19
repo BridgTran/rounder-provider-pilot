@@ -79,6 +79,7 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          eligibility_flagged_at: string | null
           fund_id: string | null
           id: string
           organisation_id: string | null
@@ -94,6 +95,7 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           declined_at?: string | null
+          eligibility_flagged_at?: string | null
           fund_id?: string | null
           id?: string
           organisation_id?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           declined_at?: string | null
+          eligibility_flagged_at?: string | null
           fund_id?: string | null
           id?: string
           organisation_id?: string | null
@@ -714,6 +717,7 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          eligibility_flagged_at: string | null
           fund_id: string | null
           id: string
           organisation_id: string | null
@@ -800,6 +804,7 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          eligibility_flagged_at: string | null
           fund_id: string | null
           id: string
           organisation_id: string | null
@@ -824,6 +829,7 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          eligibility_flagged_at: string | null
           fund_id: string | null
           id: string
           organisation_id: string | null
@@ -868,6 +874,7 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           declined_at: string | null
+          eligibility_flagged_at: string | null
           fund_id: string | null
           id: string
           organisation_id: string | null

@@ -6,13 +6,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { inviteActionSchema, studentIntakeTokenSchema, studentIntakeUpdateSchema, storedIntakeSchema, adminIntakeUnlockSchema } from "./invite-schema";
 import { applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isEligibilityFlagged } from "./application-schema";
 
-// The externally added flag is not yet present in the generated database types.
-type AdminApplicationRow = Pick<Database["public"]["Tables"]["matches"]["Row"], "id" | "student_id" | "stage" | "stage_updated_at" | "release_consent_at"> & {
-  eligibility_flagged_at: string | null;
-  scholarships: { title: string } | null;
-  students: { candidate_code: string; student_identities: { legal_name: string; email: string } | null } | null;
-};
-
 const inviteStateSchema = z.object({
   consented: z.boolean().optional(), submitted: z.boolean().optional(), deleted: z.boolean().optional(),
   requests: z.array(z.object({ id: z.string(), stage: applicationStageSchema.exclude(["shortlisted"]), fundTitle: z.string().nullable(), status: z.enum(["pending", "accepted", "declined"]), organisation: z.string(), contactPerson: z.string().nullable(), email: z.string().nullable() })).default([]),
@@ -135,8 +128,7 @@ export const adminListApplications = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("matches")
       .select("id, student_id, stage, stage_updated_at, release_consent_at, eligibility_flagged_at, scholarships(title), students(candidate_code, student_identities(legal_name, email))")
-      .order("stage_updated_at", { ascending: false })
-      .overrideTypes<AdminApplicationRow[], { merge: false }>();
+      .order("stage_updated_at", { ascending: false });
     if (error) throw new Error("Could not load applications");
     const studentIds = [...new Set((data ?? []).map((match) => match.student_id))];
     const unlockedStudents = new Set<string>();

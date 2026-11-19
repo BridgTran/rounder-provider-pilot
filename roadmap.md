@@ -1,9 +1,11 @@
 # Current work
 
 ## Flagged application reviews
+- [x] Apply uploaded eligibility-flag SQL with statements unchanged; types regenerated, column confirmed and temporary type override removed.
 - [x] Return the stored eligibility flag and show a warning with flagged applications first; preserve server error toasts without database changes.
 - [x] Automatic typecheck/build passes; all 13 application tests pass.
-- [ ] Verify live admin warnings and ordering. Blocked: the connected database has no matches.eligibility_flagged_at column, so the application query fails; no database changes made.
+- [x] Verify signed-in admin Applications loads on desktop/mobile without runtime errors; automatic typecheck/build and 13 application tests pass.
+- [ ] Verify a live flagged warning and blocked check/release toast. Blocked: the only existing application is unflagged and released; no student answers or application stages were changed for testing.
 
 ## Student intake amendments
 - [x] Add invitation-authorized intake reads/updates and authenticated admin unlock controls without database changes.
