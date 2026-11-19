@@ -1,5 +1,11 @@
 # Current work
 
+## Provider shortlist presentation
+- [x] Update shortlist buttons, stage messages, release-only drawer contacts and stat counts.
+- [x] Add completion-year, further-study and community-contribution rule controls with strengths and clause references; extended disciplines already present.
+- [x] Verify 29 tests, automatic typecheck/build and signed-in desktop/mobile rule controls and drawer.
+- [ ] Verify a new shortlist through the live UI. Blocked: the existing active fund returned no eligible candidates.
+
 ## Application-stage code alignment
 - [x] Extend fund and intake models and validation tests; 39 tests pass.
 - [x] Remove provider credits and switch candidate actions to shortlisting with release-only identity display.

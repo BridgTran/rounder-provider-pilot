@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { applicationCounts, applicationStageLabels } from "@/lib/application-schema";
 import { Copy, UserPlus } from "lucide-react";
 import { createStudentInvite } from "@/lib/invite.functions";
 import { Input } from "@/components/ui/input";
@@ -154,6 +155,7 @@ function CorporateHub() {
     const appliedFund = funds.find((f) => f.id === activeFundId && f.status === "active");
     const eligibleQuery = useQuery({ queryKey: ["active-fund-eligible", appliedFund?.id, appliedFund?.version], queryFn: () => fundEligibilityResults({ data: { rules: appliedFund?.rules ?? emptyFundRules(), discipline: appliedFund?.discipline ?? "All Disciplines", lifeLoad: appliedFund?.lifeLoad ?? [] } }), enabled: !!appliedFund });
     const matches = useMemo(() => dashboard?.matches ?? [], [dashboard?.matches]);
+    const counts = applicationCounts(matches);
     const invalidateAll = () => Promise.all([
         queryClient.invalidateQueries({ queryKey: ["students"] }),
         queryClient.invalidateQueries({ queryKey: ["provider-dashboard"] }),
@@ -162,7 +164,7 @@ function CorporateHub() {
         mutationFn: (studentId: string) => shortlistCandidateFn({ data: { studentId, fundId: appliedFund?.id ?? "" } }),
         onSuccess: async () => {
             await invalidateAll();
-            toast.success("Candidate shortlisted");
+            toast.success("Candidate shortlisted. Rounder will contact the student, check their paperwork, then pass you the package.");
         },
         onError: (error) => {
             toast.error("Shortlisting failed", { description: error.message });
@@ -274,8 +276,8 @@ function CorporateHub() {
             {([
             [String(students.length), "Eligible Profiles"],
             [String(ranked.length), "IRTO Finalists"],
-            [String(matches.length), "Applications"],
-            [String(matches.filter((m) => m.stage === "released").length), "Released Applications"],
+            [String(counts.shortlisted), "Shortlisted"],
+            [String(counts.released), "Packages Released"],
         ]).map(([value, label]) => (<div key={label} className={"bg-background px-4 py-6"}>
                 <dt className={`text-xs font-medium ${"text-muted-foreground"}`}>{label}</dt>
                 <dd className={`mt-2 font-display text-3xl font-black ${"text-charcoal"}`}>{value}</dd>
@@ -481,7 +483,7 @@ function CorporateHub() {
                     ?
                         "border-2 border-lime bg-lime/20 text-charcoal"
                     : "bg-lime text-lime-foreground hover:brightness-105"}`}>
-                    {match ? `Application: ${match.stage}` : "Shortlist candidate"}
+                    {match ? applicationStageLabels[match.stage] : "SHORTLIST CANDIDATE"}
                   </Button>
                 </div>
               </article>);
@@ -489,7 +491,7 @@ function CorporateHub() {
         </section>
       </div>
 
-      <CaseStudyDrawer candidate={caseStudy} canShortlist={!!appliedFund && !requestMutation.isPending} matched={caseStudy ? statusOf(caseStudy.code) !== "passive" : false} onClose={() => setCaseStudy(null)} onRequestMatch={requestMatch}/>
+      <CaseStudyDrawer candidate={caseStudy} canShortlist={!!appliedFund && !requestMutation.isPending} application={caseStudy ? matchFor(caseStudy.code) ?? null : null} onClose={() => setCaseStudy(null)} onShortlist={requestMatch}/>
 
       {createOpen && <CreateOpportunityModal key={editingFund?.id ?? "new"} fund={editingFund} open={createOpen} onOpenChange={setCreateOpen} onPublish={handlePublish}/>}
       </div>

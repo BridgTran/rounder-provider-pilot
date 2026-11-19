@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isReleasedApplication } from "./application-schema";
+import { applicationCounts, applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isReleasedApplication } from "./application-schema";
 
 describe("application pipeline", () => {
+  it("counts all matches as shortlisted and only released packages as released", () => {
+    expect(applicationCounts(applicationStageSchema.options.map((stage) => ({ stage })))).toEqual({ shortlisted: 8, released: 1 });
+    expect(applicationCounts([{ stage: "accepted" }, { stage: "checked" }])).toEqual({ shortlisted: 2, released: 0 });
+  });
   it("accepts all eight pipeline stages", () => {
     for (const stage of ["shortlisted", "invited", "accepted", "declined", "submitted", "returned", "checked", "released"]) expect(applicationStageSchema.safeParse(stage).success).toBe(true);
     expect(applicationStageSchema.safeParse("pending").success).toBe(false);

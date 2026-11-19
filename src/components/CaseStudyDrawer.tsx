@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { applicationStageLabels, isReleasedApplication } from "@/lib/application-schema";
+import type { ProviderMatch } from "@/lib/provider.functions";
 import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
@@ -64,15 +66,15 @@ function TargetDot(props: any) {
 export function CaseStudyDrawer({
   candidate,
   canShortlist,
-  matched,
+  application,
   onClose,
-  onRequestMatch,
+  onShortlist,
 }: {
   candidate: Candidate | null;
   canShortlist: boolean;
-  matched: boolean;
+  application: ProviderMatch | null;
   onClose: () => void;
-  onRequestMatch: (code: string) => void;
+  onShortlist: (code: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -91,6 +93,7 @@ export function CaseStudyDrawer({
   }, [onClose]);
 
   if (!candidate) return null;
+  const identity = application && isReleasedApplication(application.stage) ? application.identity : null;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -105,7 +108,7 @@ export function CaseStudyDrawer({
       >
         <div className="panel-dark sticky top-0 z-10 flex items-center justify-between gap-3 rounded-none p-5">
           <div>
-            <p className="font-mono text-sm font-black tracking-wider text-lime">{candidate.code}</p>
+            <p className="font-mono text-sm font-black tracking-wider text-lime">{identity?.legalName ?? candidate.code}</p>
             <p className="mt-1 text-xs text-charcoal-foreground/70">
               Full Anonymous Case Study · {candidate.degree} · {candidate.year}
             </p>
@@ -265,16 +268,17 @@ export function CaseStudyDrawer({
             </blockquote>
           </section>
 
+          {identity && <section className="border-t border-border pt-4"><h3 className="text-lg">Released contact details</h3><dl className="mt-3 space-y-2 text-sm"><div><dt className="text-muted-foreground">Legal name</dt><dd className="break-words">{identity.legalName}</dd></div><div><dt className="text-muted-foreground">Email</dt><dd className="break-all">{identity.email}</dd></div><div><dt className="text-muted-foreground">Phone</dt><dd className="break-words">{identity.phone}</dd></div></dl></section>}
           <Button
-            onClick={() => onRequestMatch(candidate.code)}
-            disabled={matched || !canShortlist}
-            className={`w-full rounded-full px-4 py-3.5 text-sm font-black transition ${
-              matched
+            onClick={() => onShortlist(candidate.code)}
+            disabled={!!application || !canShortlist}
+            className={`h-auto min-h-12 w-full whitespace-normal rounded-full px-4 py-3.5 text-sm font-black transition ${
+              application
                 ? "border-2 border-lime bg-lime/20 text-charcoal"
                 : "bg-lime text-lime-foreground hover:brightness-105 disabled:opacity-50"
             }`}
           >
-            {matched ? "Already shortlisted" : "Shortlist candidate"}
+            {application ? applicationStageLabels[application.stage] : "SHORTLIST CANDIDATE"}
           </Button>
         </div>
       </aside>
