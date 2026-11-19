@@ -3,7 +3,7 @@
 ## Admin invitation and application workspace
 - [x] Add one-time invitation link generation and rename the Applications statistic.
 - [x] Add stage-specific application actions, consent visibility and error toasts.
-- [ ] Verify stage rules, admin access and live invitation/application controls.
+- [x] Verify 10 stage/limit tests, signed-out and non-admin protection, real admin invitation generation (30-day expiry), live Mark invited with refreshed list, desktop/mobile and passing build. Temporary test data removed.
 
 ## Student invitation applications
 - [x] Update consent and stage-specific application cards.
