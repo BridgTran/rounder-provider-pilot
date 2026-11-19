@@ -520,6 +520,32 @@ export type Database = {
           },
         ]
       }
+      student_intake_edits: {
+        Row: {
+          edited_at: string
+          id: string
+          student_id: string
+        }
+        Insert: {
+          edited_at?: string
+          id?: string
+          student_id: string
+        }
+        Update: {
+          edited_at?: string
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_intake_edits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_invites: {
         Row: {
           consent_version: string | null
@@ -527,6 +553,7 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          intake_unlocked_at: string | null
           provider_id: string
           student_id: string | null
           token_hash: string
@@ -537,6 +564,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          intake_unlocked_at?: string | null
           provider_id: string
           student_id?: string | null
           token_hash: string
@@ -547,6 +575,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          intake_unlocked_at?: string | null
           provider_id?: string
           student_id?: string | null
           token_hash?: string
@@ -707,6 +736,10 @@ export type Database = {
         Args: { p_token_hashes: string[] }
         Returns: number
       }
+      admin_set_intake_unlock: {
+        Args: { p_student_id: string; p_unlocked: boolean }
+        Returns: undefined
+      }
       claim_organisation_invitations: { Args: never; Returns: number }
       create_organisation_invite: {
         Args: { p_email: string; p_hash: string }
@@ -745,6 +778,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      intake_editable: {
+        Args: { p_student: string; p_unlocked: string }
         Returns: boolean
       }
       is_organisation_member: { Args: { p_org: string }; Returns: boolean }
@@ -849,8 +886,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      student_get_intake: { Args: { p_token: string }; Returns: Json }
       student_invite_action: {
         Args: { p_action: string; p_payload?: Json; p_token: string }
+        Returns: Json
+      }
+      student_update_intake: {
+        Args: { p_payload: Json; p_token: string }
         Returns: Json
       }
       top_up_credits: { Args: { p_amount: number }; Returns: number }

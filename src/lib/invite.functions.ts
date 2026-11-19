@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
@@ -11,18 +11,11 @@ const inviteStateSchema = z.object({
   requests: z.array(z.object({ id: z.string(), stage: applicationStageSchema.exclude(["shortlisted"]), fundTitle: z.string().nullable(), status: z.enum(["pending", "accepted", "declined"]), organisation: z.string(), contactPerson: z.string().nullable(), email: z.string().nullable() })).default([]),
 });
 
-// Local RPC contracts extend the generated client without editing generated files.
-type IntakeDatabase = Omit<Database, "public"> & { public: Omit<Database["public"], "Functions"> & { Functions: Database["public"]["Functions"] & {
-  student_get_intake: { Args: { p_token: string }; Returns: Database["public"]["Functions"]["student_invite_action"]["Returns"] };
-  student_update_intake: { Args: { p_token: string; p_payload: z.infer<typeof studentIntakeUpdateSchema>["payload"] }; Returns: unknown };
-  admin_set_intake_unlock: { Args: { p_student_id: string; p_unlocked: boolean }; Returns: unknown };
-} } };
-
 export const studentGetIntake = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof studentIntakeTokenSchema>) => studentIntakeTokenSchema.parse(input))
   .handler(async ({ data }) => {
     const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-    const client = createClient<IntakeDatabase>(process.env["SUPABASE_URL"]!, key, {
+    const client = createClient<Database>(process.env["SUPABASE_URL"]!, key, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { fetch: (input, init) => {
         const headers = new Headers(init?.headers);
@@ -40,7 +33,7 @@ export const studentUpdateIntake = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof studentIntakeUpdateSchema>) => studentIntakeUpdateSchema.parse(input))
   .handler(async ({ data }) => {
     const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-    const client = createClient<IntakeDatabase>(process.env["SUPABASE_URL"]!, key, {
+    const client = createClient<Database>(process.env["SUPABASE_URL"]!, key, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { fetch: (input, init) => {
         const headers = new Headers(init?.headers);
@@ -60,8 +53,7 @@ export const adminSetIntakeUnlock = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: allowed, error: roleError } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (roleError || !allowed) throw new Error("Administrator sign-in required");
-    const client = context.supabase as unknown as SupabaseClient<IntakeDatabase>;
-    const { error } = await client.rpc("admin_set_intake_unlock", { p_student_id: data.studentId, p_unlocked: data.unlocked });
+    const { error } = await context.supabase.rpc("admin_set_intake_unlock", { p_student_id: data.studentId, p_unlocked: data.unlocked });
     if (error) throw new Error(error.message);
     return { studentId: data.studentId, unlocked: data.unlocked };
   });
@@ -135,12 +127,22 @@ export const adminListApplications = createServerFn({ method: "GET" })
     if (roleError || !allowed) throw new Error("Administrator sign-in required");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("matches")
-      .select("id, student_id, stage, stage_updated_at, release_consent_at, scholarships(title), students(*, student_identities(legal_name, email))")
+      .select("id, student_id, stage, stage_updated_at, release_consent_at, scholarships(title), students(candidate_code, student_identities(legal_name, email))")
       .order("stage_updated_at", { ascending: false });
     if (error) throw new Error("Could not load applications");
+    const studentIds = [...new Set((data ?? []).map((match) => match.student_id))];
+    const unlockedStudents = new Set<string>();
+    if (studentIds.length > 0) {
+      const { data: invitations, error: invitationsError } = await supabaseAdmin.from("student_invites")
+        .select("student_id, intake_unlocked_at").in("student_id", studentIds);
+      if (invitationsError) throw new Error("Could not load student editing permissions");
+      for (const invitation of invitations ?? []) {
+        if (invitation.student_id && invitation.intake_unlocked_at) unlockedStudents.add(invitation.student_id);
+      }
+    }
     return (data ?? []).map((match) => ({
       id: match.id, student_id: match.student_id, stage: applicationStageSchema.parse(match.stage), stageUpdatedAt: match.stage_updated_at,
-      intakeUnlocked: z.object({ intake_unlocked: z.boolean().optional() }).parse(match.students ?? {}).intake_unlocked ?? false,
+      intakeUnlocked: unlockedStudents.has(match.student_id),
       hasReleaseConsent: match.release_consent_at !== null,
       fundTitle: match.scholarships?.title ?? null,
       candidateCode: match.students?.candidate_code ?? null,

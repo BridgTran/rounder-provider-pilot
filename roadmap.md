@@ -4,7 +4,9 @@
 - [x] Add invitation-authorized intake reads/updates and authenticated admin unlock controls without database changes.
 - [x] Reuse the required intake form with saved defaults and show the server's editability state.
 - [x] Verify typecheck, 30 validation/stage tests, signed-in admin desktop/mobile and released-row controls hidden; latest build OK.
-- [ ] Verify saved intake amendment and admin unlock end-to-end. Blocked: the connected database does not contain student_get_intake, student_update_intake or admin_set_intake_unlock; no database changes authorized. The only existing application is released.
+- [x] Apply the uploaded intake migration unchanged and regenerate types; admin reopening status reads invitation timestamps.
+- [x] Verify real invitation consent → intake → prefilled edit → save → reread amended answers → deletion; desktop/mobile and typecheck plus 30 tests pass.
+- [ ] Verify admin unlock and relock on an existing shortlisted application. Blocked: the only existing application is released, so its edit controls are intentionally absent.
 
 ## Admin invitation and application workspace
 - [x] Add one-time invitation link generation and rename the Applications statistic.
