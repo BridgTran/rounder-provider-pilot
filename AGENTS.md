@@ -17,6 +17,7 @@
 
 - Provider data is authenticated-only; candidate actions use shortlist_candidate without credits, and providers display identities only at the released stage. Why: acceptance alone does not authorize contact disclosure.
 - Application stages and administrator action inputs share browser-safe validation; privileged application reads verify has_role before dynamically loading the admin client. Why: stage handling stays consistent and student identities remain admin-only before release.
+- Admin next-step controls use a shared stage-to-action map and invalidate application queries after writes; raw invitation links remain transient page state. Why: actions stay stage-appropriate and invitation secrets are not persisted in browser storage.
 - The authenticated provider workspace remains at /corporate; / resolves to provider sign-in or workspace, while /invite/$token is the only student surface. Why: private invitations replace public student browsing without breaking provider URLs.
 - Student invitation secrets are generated server-side, stored only as hashes, and checked inside a narrowly scoped transactional RPC for consent, intake, per-match decisions and cascading deletion. Why: candidate codes and client state must never authorize student actions.
 - Administrative roles live in public.user_roles and getAdminOverview validates has_role before privileged aggregate reads. Why: neither provider signup metadata nor browser storage can confer admin access.

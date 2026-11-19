@@ -1,5 +1,10 @@
 # Current work
 
+## Admin invitation and application workspace
+- [x] Add one-time invitation link generation and rename the Applications statistic.
+- [x] Add stage-specific application actions, consent visibility and error toasts.
+- [ ] Verify stage rules, admin access and live invitation/application controls.
+
 ## Student invitation applications
 - [x] Update consent and stage-specific application cards.
 - [x] Hide retained equity questions and enforce required academic intake answers.
