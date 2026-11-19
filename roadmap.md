@@ -1,5 +1,10 @@
 # Current work
 
+## Student invitation applications
+- [x] Update consent and stage-specific application cards.
+- [x] Hide retained equity questions and enforce required academic intake answers.
+- [x] Verify 21 tests, automatic typecheck/build and real invite consent → intake → applications → test data deletion; desktop/mobile checked.
+
 ## Provider shortlist presentation
 - [x] Update shortlist buttons, stage messages, release-only drawer contacts and stat counts.
 - [x] Add completion-year, further-study and community-contribution rule controls with strengths and clause references; extended disciplines already present.

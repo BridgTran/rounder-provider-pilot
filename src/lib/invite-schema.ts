@@ -1,16 +1,19 @@
 import { z } from "zod";
 import { australianStates, studentLevels, disciplines } from "./fund-schema";
+import { australianUniversities } from "./universities";
+
+export const collectEquityContext = false;
 
 export const intakeSchema = z.object({
-  firstDegreeCompletionYear: z.number().int().min(1990).max(new Date().getUTCFullYear() + 1).nullable().default(null),
-  intendsFurtherStudy: z.enum(["", "yes", "no"]).default(""),
-  communityContribution: z.enum(["", "yes", "no"]).default(""),
-  gender: z.enum(["", "female", "male", "non-binary"]).default(""),
-  degreeLevel: z.enum(["", ...studentLevels]).default(""),
-  firstUndergraduateDegree: z.enum(["", "yes", "no"]).default(""),
+  firstDegreeCompletionYear: z.number().int().min(1990).max(new Date().getUTCFullYear() + 1),
+  intendsFurtherStudy: z.enum(["yes", "no"]),
+  communityContribution: z.enum(["yes", "no"]),
+  gender: z.enum(["female", "male", "non-binary"]),
+  degreeLevel: z.enum(studentLevels),
+  firstUndergraduateDegree: z.enum(["yes", "no"]),
   yearsCompleted: z.number().min(0).max(20).nullable().default(null),
   campusState: z.enum(["", ...australianStates]).default(""),
-  institution: z.string().max(200).default(""),
+  institution: z.string().min(1, "Choose your university").max(200).refine((value) => australianUniversities.some((name) => name === value), "Choose a listed university"),
   state: z.enum(["", ...australianStates]).default(""),
   postcode: z.string().regex(/^(\d{4})?$/).default(""),
   region: z.string().max(100).default(""),
@@ -30,7 +33,7 @@ export const intakeSchema = z.object({
   studyMode: z.enum(["Internal", "Online", "Hybrid"]),
   studyLoad: z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)]),
   birthYear: z.number().int().min(1900).max(new Date().getUTCFullYear()),
-  equityTags: z.array(z.enum(["High External Workload 20+ hrs", "Primary Caretaker", "First-Gen Student", "Regional/Remote Background", "Low-SES Postcode"])).max(5),
+  equityTags: z.array(z.enum(["High External Workload 20+ hrs", "Primary Caretaker", "First-Gen Student", "Regional/Remote Background", "Low-SES Postcode"])).max(5).default([]),
 });
 export type IntakeInput = z.infer<typeof intakeSchema>;
 export const inviteActionSchema = z.discriminatedUnion("action", [
