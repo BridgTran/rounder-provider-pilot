@@ -26,3 +26,4 @@
 - The browser-safe university catalogue mirrors the seeded university table for public student intake. Why: public invitations need institution choices without exposing provider data.
 - Student intake shares required-answer validation with invitation actions and gates retained equity question controls behind collectEquityContext. Why: hidden pilot questions stay optional while required academic answers cannot be bypassed by form submission.
 - Intake amendments use token-authorized RPCs and the shared intake schema; server editability controls access and admin overrides use authenticated RPCs. Why: shortlisting locks cannot be bypassed by browser state.
+- Admin applications derive eligibility flags from the stored timestamp and use a stable flagged-first ordering. Why: reviews stay visible without replacing database eligibility decisions.

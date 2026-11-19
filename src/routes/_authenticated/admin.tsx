@@ -3,8 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { TriangleAlert } from "lucide-react";
 import { adminAdvanceApplication, adminIssueInvites, adminListApplications, adminSetIntakeUnlock, getAdminOverview } from "@/lib/invite.functions";
-import { adminApplicationActions, adminInviteCountSchema, canAdminUnlockIntake, type AdminApplicationTarget } from "@/lib/application-schema";
+import { adminApplicationActions, adminInviteCountSchema, canAdminUnlockIntake, prioritizeFlaggedApplications, type AdminApplicationTarget } from "@/lib/application-schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,11 +86,11 @@ function AdminControls() {
       {applications.length === 0 ? <p className="mt-4 text-muted-foreground">No applications yet.</p> : <div className="mt-4 overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border text-muted-foreground"><tr>{["Student", "Fund", "Email", "Stage", "Release consent", "Next step"].map((heading) => <th key={heading} scope="col" className="px-3 py-3 font-medium">{heading}</th>)}</tr></thead>
-          <tbody>{applications.map((application) => <tr key={application.id} className="border-b border-border align-top">
+          <tbody>{prioritizeFlaggedApplications(applications).map((application) => <tr key={application.id} className="border-b border-border align-top">
             <td className="px-3 py-4">{application.legalName || application.candidateCode || "Anonymous student"}</td>
             <td className="px-3 py-4">{application.fundTitle || "—"}</td>
             <td className="break-all px-3 py-4">{application.email || "—"}</td>
-            <td className="px-3 py-4 capitalize">{application.stage}</td>
+            <td className="px-3 py-4"><span className="capitalize">{application.stage}</span>{application.flagged && <span className="mt-2 inline-flex items-start gap-2 rounded border border-destructive bg-destructive/10 px-2 py-1 text-xs font-semibold text-destructive"><TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />Needs review: no longer meets required rules</span>}</td>
             <td className="px-3 py-4">{application.hasReleaseConsent ? "Recorded" : "Not recorded"}</td>
             <td className="px-3 py-4"><div className="flex min-w-40 flex-wrap gap-2">{adminApplicationActions[application.stage].map((action) => <Button key={action.to} size="sm" variant="outline" disabled={advance.isPending} onClick={() => advance.mutate({ matchId: application.id, to: action.to })}>{action.label}</Button>)}{canAdminUnlockIntake(application.stage) && <Button size="sm" variant="outline" disabled={unlock.isPending} onClick={() => unlock.mutate({ studentId: application.student_id, unlocked: !(unlockedStudents[application.student_id] ?? application.intakeUnlocked) })}>{(unlockedStudents[application.student_id] ?? application.intakeUnlocked) ? "Lock student answers" : "Allow student to edit"}</Button>}</div></td>
           </tr>)}</tbody>

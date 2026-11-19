@@ -17,6 +17,9 @@ export const adminInviteCountSchema = z.object({ count: z.number().int().min(1).
 export const advanceApplicationSchema = z.object({ matchId: z.string().uuid(), to: z.enum(["invited", "submitted", "returned", "checked", "released"]) });
 export const isReleasedApplication = (stage: ApplicationStage) => stage === "released";
 export const canAdminUnlockIntake = (stage: ApplicationStage) => stage !== "released";
+export const isEligibilityFlagged = (flaggedAt: string | null) => flaggedAt !== null;
+export const prioritizeFlaggedApplications = <T extends { flagged: boolean }>(applications: readonly T[]): T[] =>
+  [...applications].sort((a, b) => Number(b.flagged) - Number(a.flagged));
 export const applicationStageLabels: Record<ApplicationStage, string> = {
   shortlisted: "Shortlisted, Rounder will contact the student",
   invited: "Student invited",

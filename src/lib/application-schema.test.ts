@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { adminApplicationActions, applicationCounts, applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isReleasedApplication, canAdminUnlockIntake } from "./application-schema";
+import { adminApplicationActions, applicationCounts, applicationStageSchema, adminInviteCountSchema, advanceApplicationSchema, isReleasedApplication, canAdminUnlockIntake, isEligibilityFlagged, prioritizeFlaggedApplications } from "./application-schema";
 
 describe("application pipeline", () => {
+  it("flags applications only when eligibility_flagged_at is not null", () => {
+    expect(isEligibilityFlagged(null)).toBe(false);
+    expect(isEligibilityFlagged("2026-11-19T06:27:00Z")).toBe(true);
+  });
+  it("puts flagged rows first while preserving the order within both groups", () => {
+    const applications = [
+      { id: "new-unflagged", flagged: false },
+      { id: "new-flagged", flagged: true },
+      { id: "old-unflagged", flagged: false },
+      { id: "old-flagged", flagged: true },
+    ];
+    expect(prioritizeFlaggedApplications(applications).map((row) => row.id)).toEqual(["new-flagged", "old-flagged", "new-unflagged", "old-unflagged"]);
+    expect(applications[0]?.id).toBe("new-unflagged");
+  });
   it("allows intake override controls on every stage except released", () => {
     expect(applicationStageSchema.options.filter(canAdminUnlockIntake)).toEqual(["shortlisted", "invited", "accepted", "declined", "submitted", "returned", "checked"]);
     expect(canAdminUnlockIntake("released")).toBe(false);

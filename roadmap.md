@@ -1,5 +1,10 @@
 # Current work
 
+## Flagged application reviews
+- [x] Return the stored eligibility flag and show a warning with flagged applications first; preserve server error toasts without database changes.
+- [x] Automatic typecheck/build passes; all 13 application tests pass.
+- [ ] Verify live admin warnings and ordering. Blocked: the connected database has no matches.eligibility_flagged_at column, so the application query fails; no database changes made.
+
 ## Student intake amendments
 - [x] Add invitation-authorized intake reads/updates and authenticated admin unlock controls without database changes.
 - [x] Reuse the required intake form with saved defaults and show the server's editability state.
