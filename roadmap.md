@@ -1,5 +1,10 @@
 # Current work
 
+## Admin paperwork review
+- [x] Add pending-first statement review with edited approval/rejection through existing admin RPCs.
+- [x] Add per-application document panels, authenticated 60-second viewing links and checked/rejected reviews.
+- [x] Verify 25 validation/stage tests and automatic typecheck/build; signed-in edited approval reread, rejection/reapproval, private viewing, required rejection note, persisted document review, blocked Check passed toast, Return to student, and five checked documents allowing Check passed. Desktop/mobile checked; temporary student/application/reviews and five private files removed. No database schema changes.
+
 ## Student paperwork
 - [x] Add acceptance-gated statements and document rows using existing RPCs only; no database/schema changes.
 - [x] Enforce private server uploads, type/size limits, replacement and rollback cleanup.

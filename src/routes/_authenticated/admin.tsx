@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { TriangleAlert } from "lucide-react";
 import { adminAdvanceApplication, adminIssueInvites, adminListApplications, adminSetIntakeUnlock, getAdminOverview } from "@/lib/invite.functions";
@@ -9,13 +9,18 @@ import { adminApplicationActions, adminInviteCountSchema, canAdminUnlockIntake, 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { AdminStatementReview, adminStatementsOptions } from "@/components/AdminStatementReview";
+import { AdminDocumentsPanel } from "@/components/AdminDocumentsPanel";
 
 const adminOptions = queryOptions({ queryKey: ["admin-overview"], queryFn: () => getAdminOverview() });
 const applicationsOptions = queryOptions({ queryKey: ["admin-applications"], queryFn: () => adminListApplications() });
 export const Route = createFileRoute("/_authenticated/admin")({
   loader: async ({ context }) => {
     const overview = await context.queryClient.ensureQueryData(adminOptions);
-    if (overview.allowed) await context.queryClient.ensureQueryData(applicationsOptions);
+    if (overview.allowed) await Promise.all([
+      context.queryClient.ensureQueryData(applicationsOptions),
+      context.queryClient.ensureQueryData(adminStatementsOptions),
+    ]);
   },
   head: () => ({ meta: [
     { title: "Administration — ROUNDER HQ" }, { name: "description", content: "Restricted ROUNDER HQ scholarship pilot administration." },
@@ -81,19 +86,20 @@ function AdminControls() {
         <Textarea id="invitation-links" readOnly value={links} rows={Math.min(10, links.split("\n").length + 1)} className="font-mono text-sm" spellCheck={false} />
       </div>}
     </section>
+    <AdminStatementReview />
     <section className="mt-10 border-t border-border pt-6">
       <h2 className="text-xl font-semibold">Applications</h2>
       {applications.length === 0 ? <p className="mt-4 text-muted-foreground">No applications yet.</p> : <div className="mt-4 overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border text-muted-foreground"><tr>{["Student", "Fund", "Email", "Stage", "Release consent", "Next step"].map((heading) => <th key={heading} scope="col" className="px-3 py-3 font-medium">{heading}</th>)}</tr></thead>
-          <tbody>{prioritizeFlaggedApplications(applications).map((application) => <tr key={application.id} className="border-b border-border align-top">
+          <tbody>{prioritizeFlaggedApplications(applications).map((application) => <Fragment key={application.id}><tr className="align-top">
             <td className="px-3 py-4">{application.legalName || application.candidateCode || "Anonymous student"}</td>
             <td className="px-3 py-4">{application.fundTitle || "—"}</td>
             <td className="break-all px-3 py-4">{application.email || "—"}</td>
             <td className="px-3 py-4"><span className="capitalize">{application.stage}</span>{application.flagged && <span className="mt-2 inline-flex items-start gap-2 rounded border border-destructive bg-destructive/10 px-2 py-1 text-xs font-semibold text-destructive"><TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />Needs review: no longer meets required rules</span>}</td>
             <td className="px-3 py-4">{application.hasReleaseConsent ? "Recorded" : "Not recorded"}</td>
             <td className="px-3 py-4"><div className="flex min-w-40 flex-wrap gap-2">{adminApplicationActions[application.stage].map((action) => <Button key={action.to} size="sm" variant="outline" disabled={advance.isPending} onClick={() => advance.mutate({ matchId: application.id, to: action.to })}>{action.label}</Button>)}{canAdminUnlockIntake(application.stage) && <Button size="sm" variant="outline" disabled={unlock.isPending} onClick={() => unlock.mutate({ studentId: application.student_id, unlocked: !(unlockedStudents[application.student_id] ?? application.intakeUnlocked) })}>{(unlockedStudents[application.student_id] ?? application.intakeUnlocked) ? "Lock student answers" : "Allow student to edit"}</Button>}</div></td>
-          </tr>)}</tbody>
+          </tr><tr className="border-b border-border"><td colSpan={6} className="px-3 pb-4"><AdminDocumentsPanel studentId={application.student_id} applicationId={application.id} /></td></tr></Fragment>)}</tbody>
         </table>
       </div>}
     </section>

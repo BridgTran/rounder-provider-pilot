@@ -11,6 +11,8 @@
 
 ## Architecture
 
+- Admin paperwork reviews use authenticated admin RPCs; document viewing resolves an authorized path before issuing a 60-second private storage link. Why: browsers cannot choose arbitrary paths or bypass review/release guards.
+
 - Student paperwork uses invitation-authorized RPCs for editability and registration; only authorized server functions upload private objects, remove replaced objects, and roll back unregistered uploads. Why: browser state cannot grant storage access or leak document paths.
 
 - Scholarship writes use an organisation-member-scoped transactional RPC with optimistic version checks and fresh attestation on activation and subsequent saves; triggers snapshot every save into immutable versions and events. Why: direct writes must not bypass authority confirmation or overwrite history.
