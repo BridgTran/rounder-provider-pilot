@@ -74,6 +74,58 @@ export type Database = {
         }
         Relationships: []
       }
+      candidate_notes: {
+        Row: {
+          considered: boolean
+          fund_id: string
+          note: string
+          organisation_id: string
+          student_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          considered?: boolean
+          fund_id: string
+          note?: string
+          organisation_id: string
+          student_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          considered?: boolean
+          fund_id?: string
+          note?: string
+          organisation_id?: string
+          student_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_notes_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "scholarships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_notes_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_notes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           accepted_at: string | null
@@ -593,6 +645,47 @@ export type Database = {
           },
         ]
       }
+      student_snippets: {
+        Row: {
+          approved_community_text: string
+          approved_next_study_text: string
+          community_text: string
+          next_study_text: string
+          reviewed_at: string | null
+          status: string
+          student_id: string
+          submitted_at: string
+        }
+        Insert: {
+          approved_community_text?: string
+          approved_next_study_text?: string
+          community_text?: string
+          next_study_text?: string
+          reviewed_at?: string | null
+          status?: string
+          student_id: string
+          submitted_at?: string
+        }
+        Update: {
+          approved_community_text?: string
+          approved_next_study_text?: string
+          community_text?: string
+          next_study_text?: string
+          reviewed_at?: string | null
+          status?: string
+          student_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_snippets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           adaptability: number
@@ -740,6 +833,28 @@ export type Database = {
         Args: { p_token_hashes: string[] }
         Returns: number
       }
+      admin_list_snippets: {
+        Args: never
+        Returns: {
+          approved_community_text: string
+          approved_next_study_text: string
+          candidate_code: string
+          community_text: string
+          next_study_text: string
+          status: string
+          student_id: string
+          submitted_at: string
+        }[]
+      }
+      admin_review_snippets: {
+        Args: {
+          p_approve: boolean
+          p_community: string
+          p_next_study: string
+          p_student_id: string
+        }
+        Returns: undefined
+      }
       admin_set_intake_unlock: {
         Args: { p_student_id: string; p_unlocked: boolean }
         Returns: undefined
@@ -777,11 +892,28 @@ export type Database = {
           rule_key: string
         }[]
       }
+      fund_candidate_snippets: {
+        Args: { p_fund_id: string }
+        Returns: {
+          community_text: string
+          next_study_text: string
+          student_id: string
+        }[]
+      }
       fund_eligibility_results: {
         Args: { p_discipline: string; p_life_load: string[]; p_rules: Json }
         Returns: {
           preferences_met: number
           preferences_total: number
+          student_id: string
+        }[]
+      }
+      fund_rule_results_all: {
+        Args: { p_fund_id: string }
+        Returns: {
+          met: boolean
+          preferred: boolean
+          rule_key: string
           student_id: string
         }[]
       }
@@ -856,6 +988,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_candidate_note: {
+        Args: {
+          p_considered: boolean
+          p_fund_id: string
+          p_note: string
+          p_student_id: string
+        }
+        Returns: undefined
+      }
       save_scholarship_rules: {
         Args: {
           p_activate: boolean
@@ -902,8 +1043,13 @@ export type Database = {
         }
       }
       student_get_intake: { Args: { p_token: string }; Returns: Json }
+      student_get_snippets: { Args: { p_token: string }; Returns: Json }
       student_invite_action: {
         Args: { p_action: string; p_payload?: Json; p_token: string }
+        Returns: Json
+      }
+      student_save_snippets: {
+        Args: { p_community: string; p_next_study: string; p_token: string }
         Returns: Json
       }
       student_update_intake: {
