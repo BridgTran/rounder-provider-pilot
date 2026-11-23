@@ -769,6 +769,14 @@ export type Database = {
           rule_key: string
         }[]
       }
+      fund_candidate_rule_results: {
+        Args: { p_fund_id: string; p_student_id: string }
+        Returns: {
+          met: boolean
+          preferred: boolean
+          rule_key: string
+        }[]
+      }
       fund_eligibility_results: {
         Args: { p_discipline: string; p_life_load: string[]; p_rules: Json }
         Returns: {

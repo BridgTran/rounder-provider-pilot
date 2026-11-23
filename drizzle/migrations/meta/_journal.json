@@ -99,6 +99,13 @@
       "when": 1795070034246,
       "tag": "0013_application_eligibility_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795402874052,
+      "tag": "0014_fund_candidate_rule_results",
+      "breakpoints": true
     }
   ]
 }
