@@ -478,6 +478,59 @@ export type Database = {
           },
         ]
       }
+      student_documents: {
+        Row: {
+          admin_note: string
+          checked_at: string | null
+          checked_by: string | null
+          doc_type: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          status: string
+          student_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          admin_note?: string
+          checked_at?: string | null
+          checked_by?: string | null
+          doc_type: string
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          status?: string
+          student_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          admin_note?: string
+          checked_at?: string | null
+          checked_by?: string | null
+          doc_type?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          status?: string
+          student_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_documents_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_eligibility: {
         Row: {
           campus_state: string | null
@@ -829,9 +882,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_document_path: { Args: { p_document_id: string }; Returns: string }
       admin_issue_student_invites: {
         Args: { p_token_hashes: string[] }
         Returns: number
+      }
+      admin_list_documents: {
+        Args: { p_student_id: string }
+        Returns: {
+          admin_note: string
+          doc_type: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          status: string
+          uploaded_at: string
+        }[]
       }
       admin_list_snippets: {
         Args: never
@@ -845,6 +913,10 @@ export type Database = {
           student_id: string
           submitted_at: string
         }[]
+      }
+      admin_review_document: {
+        Args: { p_document_id: string; p_note: string; p_status: string }
+        Returns: undefined
       }
       admin_review_snippets: {
         Args: {
@@ -938,6 +1010,14 @@ export type Database = {
           status: string
         }[]
       }
+      provider_document_path: {
+        Args: { p_document_id: string }
+        Returns: string
+      }
+      provider_released_package: {
+        Args: { p_fund_id: string; p_student_id: string }
+        Returns: Json
+      }
       request_fund_unlock: {
         Args: { p_fund_id: string; p_student_id: string }
         Returns: {
@@ -988,6 +1068,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      required_document_types: { Args: never; Returns: string[] }
       save_candidate_note: {
         Args: {
           p_considered: boolean
@@ -1042,11 +1123,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      student_get_documents: { Args: { p_token: string }; Returns: Json }
       student_get_intake: { Args: { p_token: string }; Returns: Json }
       student_get_snippets: { Args: { p_token: string }; Returns: Json }
       student_invite_action: {
         Args: { p_action: string; p_payload?: Json; p_token: string }
         Returns: Json
+      }
+      student_register_document: {
+        Args: {
+          p_doc_type: string
+          p_mime: string
+          p_name: string
+          p_path: string
+          p_size: number
+          p_token: string
+        }
+        Returns: string
       }
       student_save_snippets: {
         Args: { p_community: string; p_next_study: string; p_token: string }
