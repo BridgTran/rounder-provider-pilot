@@ -11,6 +11,8 @@
 
 ## Architecture
 
+- Shortlist exports share an explicit anonymous-column mapper for CSV and isolated print output. Why: neither export serializes identities or student statements.
+
 - Provider consideration saves merge omitted fields from persisted notes; released packages use session-authorized RPCs and document signing follows provider_document_path. Why: stars preserve notes and private files remain release-gated.
 
 - Admin paperwork reviews use authenticated admin RPCs; document viewing resolves an authorized path before issuing a 60-second private storage link. Why: browsers cannot choose arbitrary paths or bypass review/release guards.

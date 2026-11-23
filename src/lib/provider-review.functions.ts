@@ -12,6 +12,15 @@ export const listCandidateNotes = createServerFn({ method: "GET" })
     return notes ?? [];
   });
 
+export const getFundRuleResultsAll = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof fundNotesSchema>) => fundNotesSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: results, error } = await context.supabase.rpc("fund_rule_results_all", { p_fund_id: data.fundId });
+    if (error) throw new Error(error.message);
+    return results ?? [];
+  });
+
 export const saveCandidateNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof saveCandidateNoteSchema>) => saveCandidateNoteSchema.parse(input))

@@ -40,6 +40,8 @@
 }
 
 :root {
+  --print-paper: #ffffff;
+  --print-ink: #000000;
   --radius: 1rem;
   --background: oklch(0.991 0.005 95);
   --foreground: oklch(0.24 0.02 264);
@@ -165,4 +167,20 @@
     width: 100% !important;
     max-height: calc(100dvh - 1.5rem) !important;
   }
+}
+
+.shortlist-print { display: none; }
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body:has(> .shortlist-print) { background: var(--print-paper); color: var(--print-ink); }
+  body:has(> .shortlist-print) > :not(.shortlist-print) { display: none !important; }
+  .shortlist-print { display: block; font-family: Arial, sans-serif; color: var(--print-ink); background: var(--print-paper); }
+  .shortlist-print header { margin-bottom: 5mm; }
+  .shortlist-print h1 { font-size: 16pt; letter-spacing: 0; }
+  .shortlist-print header p { margin-top: 2mm; font-size: 9pt; }
+  .shortlist-print table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7pt; }
+  .shortlist-print th, .shortlist-print td { border: 0.2mm solid var(--print-ink); padding: 2mm 1.5mm; text-align: left; vertical-align: top; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .shortlist-print th { font-weight: bold; }
+  .shortlist-print thead { display: table-header-group; }
+  .shortlist-print tr { break-inside: avoid; }
 }

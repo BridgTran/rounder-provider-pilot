@@ -21,6 +21,7 @@ import { listCandidateNotes, saveCandidateNote } from "@/lib/provider-review.fun
 import { filterConsidered } from "@/lib/provider-review-schema";
 import { ConsiderStar } from "@/components/CandidateConsideration";
 import { ReleasedPackages } from "@/components/ReleasedPackages";
+import { ShortlistExport } from "@/components/ShortlistExport";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 type FeedStatus = "passive" | "active" | "revealed" | "declined";
@@ -411,7 +412,7 @@ function CorporateHub() {
             </span>
           </div>
 
-          {appliedFund && <label className="flex items-center gap-3 text-sm font-semibold"><Switch checked={showConsideredOnly} onCheckedChange={setShowConsideredOnly} disabled={notesQuery.isPending || notesQuery.isError} aria-label="Show considered only" />Show considered only</label>}
+          {appliedFund && <div className="flex flex-wrap items-center justify-between gap-3"><label className="flex items-center gap-3 text-sm font-semibold"><Switch checked={showConsideredOnly} onCheckedChange={setShowConsideredOnly} disabled={notesQuery.isPending || notesQuery.isError} aria-label="Show considered only" />Show considered only</label><ShortlistExport key={appliedFund.id} fund={appliedFund} candidates={ranked.map((result) => result.student as CandidateRecord)} /></div>}
 
           {studentsQuery.isLoading && (<div className="panel-light p-8 text-center">
               <p className="text-sm font-bold text-charcoal">Loading the live candidate registry…</p>

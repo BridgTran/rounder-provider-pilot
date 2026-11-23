@@ -1,5 +1,9 @@
 # Current work
 
+## Anonymous shortlist export
+- [x] Add CSV/print dialog using ranked eligible candidates, bulk rule results and fund notes; optional starred-only filter.
+- [x] Verify 10 tests and automatic typecheck/build, real signed-in CSV download (one eligible Jamieson candidate), starred-only CSV, desktop/mobile dialog and black-and-white A4 landscape PDF (841.92 × 594.96 points). Explicit anonymous columns exclude identity and statements; database unchanged.
+
 ## Provider consideration and released packages
 - [x] Add fund-scoped stars, private notes, considered-only filtering and shortlist confirmation.
 - [x] Add released packages with approved statements and authorized private downloads; no statements in anonymous cards/drawer.
