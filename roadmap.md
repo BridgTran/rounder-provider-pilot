@@ -1,5 +1,11 @@
 # Current work
 
+## Intake wording and required campus state
+- [x] Reword the first-degree completion-year question, add its helper text, and expand the further-study question.
+- [x] Make campus state required in the form with a short in-page error; schema, database and matching logic untouched.
+- [x] Reword the fund rule label to "Year the final year of the first undergraduate degree is/was completed".
+- [x] Verify live: labels and helper text render, blank campus state blocks submit and toasts the error, filled intake submits, fund label present; typecheck plus 56 schema tests pass.
+
 ## Flagged application reviews
 - [x] Apply uploaded eligibility-flag SQL with statements unchanged; types regenerated, column confirmed and temporary type override removed.
 - [x] Return the stored eligibility flag and show a warning with flagged applications first; preserve server error toasts without database changes.

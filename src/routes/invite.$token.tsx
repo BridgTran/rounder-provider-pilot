@@ -34,15 +34,15 @@ const selections = [
   ["gender", "Gender", ["", "female", "male", "non-binary"]],
   ["degreeLevel", "Level you are enrolled in this year", ["", ...studentLevels]],
   ["firstUndergraduateDegree", "Was this your first undergraduate degree?", ["", "yes", "no"]],
-  ["intendsFurtherStudy", "Do you intend to continue to further study?", ["", "yes", "no"]],
+  ["intendsFurtherStudy", "Do you intend to continue to further study (honours, postgraduate coursework or research) next year?", ["", "yes", "no"]],
   ["communityContribution", "Have you made a significant contribution to your community?", ["", "yes", "no"]],
-  ["campusState", "Campus state (optional)", ["", ...australianStates]],
+  ["campusState", "Campus state", ["", ...australianStates]],
   ["institution", "University", ["", ...australianUniversities]],
   ["state", "Home state (optional)", ["", ...australianStates]],
   ["firstGeneration", "First-generation (optional)", ["", "yes", "no"]],
   ["centrelink", "Centrelink concession (optional)", ["", "yes", "no"]],
 ] as const;
-const requiredSelections = new Set<string>(["gender", "degreeLevel", "institution", "firstUndergraduateDegree", "intendsFurtherStudy", "communityContribution"]);
+const requiredSelections = new Set<string>(["gender", "degreeLevel", "institution", "firstUndergraduateDegree", "intendsFurtherStudy", "communityContribution", "campusState"]);
 const equitySelections = new Set<string>(["workSector", "firstGeneration", "centrelink"]);
 const equity = ["High External Workload 20+ hrs", "Primary Caretaker", "First-Gen Student", "Regional/Remote Background", "Low-SES Postcode"];
 
@@ -105,6 +105,8 @@ function StudentInvitation() {
     </section> : !data.submitted || editing ? <form key={editing ? "edit" : "initial"} className="mt-8 space-y-5" onSubmit={(event) => {
       event.preventDefault();
       const fields = new FormData(event.currentTarget);
+      // UI-level guard only: intakeSchema and matching logic are unchanged.
+      if (!String(fields.get("campusState") ?? "")) { setFormError("Choose your campus state."); return; }
       const payload = { ...defaults, ...Object.fromEntries(fields) };
       const parsed = intakeSchema.safeParse({ ...payload, firstDegreeCompletionYear: fields.get("firstDegreeCompletionYear") ? Number(fields.get("firstDegreeCompletionYear")) : undefined, yearsCompleted: fields.get("yearsCompleted") ? Number(fields.get("yearsCompleted")) : null, householdIncome: collectEquityContext ? (fields.get("householdIncome") ? Number(fields.get("householdIncome")) : null) : defaults?.householdIncome ?? null, rawGpa: Number(fields.get("rawGpa")), weeklyHours: collectEquityContext ? Number(fields.get("weeklyHours")) : defaults?.weeklyHours ?? 0, yearLevel: Number(fields.get("yearLevel")), studyLoad: Number(fields.get("studyLoad")), birthYear: Number(fields.get("birthYear")), equityTags: collectEquityContext ? fields.getAll("equityTags") : defaults?.equityTags ?? [] });
       if (!parsed.success) { setFormError(parsed.error.issues[0]?.message ?? "Check your answers."); return; }
@@ -112,7 +114,7 @@ function StudentInvitation() {
       if (editing) update.mutate(parsed.data);
       else action.mutate({ token, action: "intake", payload: parsed.data });
     }}>
-      <div className="grid gap-5 sm:grid-cols-2">{[["legalName", "Full name", "text"], ["email", "Email", "email"], ["phone", "Phone (optional)", "tel"], ["degree", "Degree title", "text"], ["rawGpa", "GPA / marks out of 100", "number"], ["weeklyHours", "Weekly work and caring hours", "number"], ["birthYear", "Birth year", "number"], ["firstDegreeCompletionYear", "Year you completed the final year of your first undergraduate degree", "number"]].filter(([name]) => collectEquityContext || name !== "weeklyHours").map(([name, label, type]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label}</Label><Input id={name} name={name} type={type} defaultValue={fieldDefault(name)} required={name !== "phone"} min={name === "birthYear" ? 1900 : name === "firstDegreeCompletionYear" ? 1990 : 0} max={name === "firstDegreeCompletionYear" ? new Date().getUTCFullYear() + 1 : name === "birthYear" ? new Date().getFullYear() : name === "rawGpa" ? 100 : name === "weeklyHours" ? 168 : undefined} step={name === "rawGpa" ? "0.1" : "1"} /></div>)}</div>
+      <div className="grid gap-5 sm:grid-cols-2">{[["legalName", "Full name", "text"], ["email", "Email", "email"], ["phone", "Phone (optional)", "tel"], ["degree", "Degree title", "text"], ["rawGpa", "GPA / marks out of 100", "number"], ["weeklyHours", "Weekly work and caring hours", "number"], ["birthYear", "Birth year", "number"], ["firstDegreeCompletionYear", "Year you complete (or completed) the final year of your first undergraduate degree. For a double degree, use the year the whole double degree finishes.", "number"]].filter(([name]) => collectEquityContext || name !== "weeklyHours").map(([name, label, type]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label}</Label><Input id={name} name={name} type={type} defaultValue={fieldDefault(name)} required={name !== "phone"} min={name === "birthYear" ? 1900 : name === "firstDegreeCompletionYear" ? 1990 : 0} max={name === "firstDegreeCompletionYear" ? new Date().getUTCFullYear() + 1 : name === "birthYear" ? new Date().getFullYear() : name === "rawGpa" ? 100 : name === "weeklyHours" ? 168 : undefined} step={name === "rawGpa" ? "0.1" : "1"} />{name === "firstDegreeCompletionYear" && <p className="text-xs text-muted-foreground">If you are finishing this year, enter this year.</p>}</div>)}</div>
       <div className="grid gap-5 sm:grid-cols-2">{selections.filter(([name]) => collectEquityContext || !equitySelections.has(name)).map(([name, label, options]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label}</Label><select id={name} name={name} required={requiredSelections.has(name)} defaultValue={fieldDefault(name) ?? (requiredSelections.has(name) ? "" : undefined)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{options.map((option) => <option key={option} value={option}>{option || "Select an answer"}</option>)}</select></div>)}</div>
       <div className="grid gap-5 sm:grid-cols-2">{[["yearsCompleted","Years of study completed","number"],["householdIncome","Annual household income ($ AUD)","number"],["postcode","Home postcode","text"],["region","Home region","text"]].filter(([name]) => collectEquityContext || name === "yearsCompleted").map(([name,label,type]) => <div key={name} className="space-y-2"><Label htmlFor={name}>{label} (optional)</Label><Input id={name} name={name} type={type} defaultValue={fieldDefault(name)} min="0" step={name === "yearsCompleted" ? "0.5" : "1"} /></div>)}</div>
       {collectEquityContext && <fieldset className="space-y-3"><legend className="mb-3 font-medium">Life context (optional)</legend>{equity.map((tag) => <label key={tag} className="flex items-start gap-3 text-sm"><input type="checkbox" name="equityTags" value={tag} defaultChecked={defaults?.equityTags.includes(tag as IntakeInput["equityTags"][number])} className="mt-1 accent-lime" />{tag}</label>)}</fieldset>}
