@@ -85,3 +85,8 @@
 - [x] Matches table + per-provider credits balance: request costs 1 credit, student accepts, then names/contact revealed to both sides via RLS.
 - [x] Keep IRTO scoring, GritBreakdownPanel, and both campaign themes working on real data.
 - [x] Verify end-to-end (signup, publish fund, request match, accept, reveal) and build clean.
+
+## Fund-driven provider feed
+- [x] Hide the "Filter by Eligibility & Context" sidebar behind `showManualFilters = false`, keeping its code in the repo.
+- [x] Show every candidate meeting the selected fund's Required rules, ordered by Preferred rules met then candidate code.
+- [x] Test the ordering rule and verify the live fund-selected feed.

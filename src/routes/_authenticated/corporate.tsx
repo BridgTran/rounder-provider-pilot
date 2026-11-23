@@ -15,6 +15,7 @@ import { saveFund, fundEligibilityResults } from "@/lib/fund.functions";
 import { inviteTeamMember } from "@/lib/organisation.functions";
 import { disciplines, emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
+import { compareByPreferencesThenCode } from "@/lib/candidate-order";
 type DrawerCandidate = {
     code: string;
     degree: string;
@@ -56,6 +57,14 @@ const visaOptions = ["Any Status", "Citizen", "Permanent Resident", "Student Vis
 const yearOptions = ["Any Year", "1", "2", "3", "4"];
 const studyModeOptions: StudyMode[] = ["Internal", "Online", "Hybrid"];
 const studyLoadOptions = [25, 50, 75, 100] as const;
+
+/**
+ * The "Filter by Eligibility & Context" sidebar is switched off for the pilot. A selected
+ * fund's own Required rules decide who appears in the feed, so the manual gates would only
+ * duplicate (and could contradict) the trust-deed rules. Flip this to `true` to bring the
+ * panel and its widgets back — the markup, state and IRTO wiring are all still in place.
+ */
+const showManualFilters = false;
 function FilterSlider({ label, value, onChange, suffix = "%+", editorial = false, }: {
     label: string;
     value: number;
@@ -220,8 +229,11 @@ function CorporateHub() {
             },
         };
         if (appliedFund) {
-            const counts = new Map(eligibleQuery.data?.map((r) => [r.student_id,r]) ?? []);
-            return rankCandidates(students.filter((s) => counts.has(s.id)), { mandatory: {}, preferred: {} }).sort((a,b) => (counts.get(b.student.id)?.preferences_met ?? 0) - (counts.get(a.student.id)?.preferences_met ?? 0));
+            // The RPC returns exactly the candidates meeting the fund's Required rules.
+            // List them most Preferred rules met first, then by candidate code.
+            const preferencesMet = new Map(eligibleQuery.data?.map((r) => [r.student_id, r.preferences_met]) ?? []);
+            return rankCandidates(students.filter((s) => preferencesMet.has(s.id)), { mandatory: {}, preferred: {} })
+                .sort((a, b) => compareByPreferencesThenCode(a.student, b.student, preferencesMet));
         }
         return rankCandidates(students, criteria);
     }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, lifeLoad, appliedFund, eligibleQuery.data]);
@@ -338,9 +350,9 @@ function CorporateHub() {
             </ul>)}
         </section>)}
 
-      <div className="grid gap-8 pt-2 lg:grid-cols-4 lg:gap-10">
-        {/* Sidebar filters */}
-        <aside className={`h-fit rounded-lg border p-6 lg:sticky lg:top-36 ${"border-charcoal/20 bg-card text-charcoal"}`}>
+      <div className={showManualFilters ? "grid gap-8 pt-2 lg:grid-cols-4 lg:gap-10" : "grid gap-8 pt-2"}>
+        {/* Sidebar filters — not rendered while showManualFilters is false. */}
+        {showManualFilters && (<aside className={`h-fit rounded-lg border p-6 lg:sticky lg:top-36 ${"border-charcoal/20 bg-card text-charcoal"}`}>
           <h2 className={`text-lg ${"text-charcoal"}`}>⚡ Filter by Eligibility &amp; Context</h2>
           <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
             IRTO engine re-ranks the feed on every change.
@@ -371,17 +383,17 @@ function CorporateHub() {
             <p className={`eyebrow ${"text-charcoal"}`}>Core Competencies</p>
             <FilterSlider label="Target Adjusted GPA" value={targetGpa} onChange={setTargetGpa} editorial={true}/>
           </div>
-        </aside>
+        </aside>)}
 
         {/* Candidate feed */}
-        <section className="space-y-5 lg:col-span-3">
+        <section className={showManualFilters ? "space-y-5 lg:col-span-3" : "space-y-5"}>
           <div className="flex flex-wrap items-end justify-between gap-3 pb-2">
             <h2 className={`text-xl font-black sm:text-2xl ${"text-charcoal"}`}>
               {"Scholarship Finalist Discovery"}
             </h2>
             <span className={`flex items-center gap-2 text-xs font-medium ${"text-muted-foreground"}`}>
               <span className="pulse inline-block h-2 w-2 rounded-full bg-lime"/> {ranked.length}{" "}
-              eligible · {appliedFund ? "ordered by preferences met" : "all candidates"}
+              eligible · {appliedFund ? "ordered by preferences met, then candidate code" : "all candidates"}
             </span>
           </div>
 
@@ -391,10 +403,12 @@ function CorporateHub() {
 
           {!studentsQuery.isLoading && ranked.length === 0 && (<div className="panel-light p-8 text-center">
               <p className="text-sm font-bold text-charcoal">
-                No candidates clear your mandatory hard gates.
+                {appliedFund ? "No candidates meet this fund's required rules." : "No candidates clear your mandatory hard gates."}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Loosen a gate — discipline, visa status, year level, study mode or study load.
+                {appliedFund
+                    ? "Edit the fund's rules, or pick a different fund."
+                    : "Loosen a gate — discipline, visa status, year level, study mode or study load."}
               </p>
             </div>)}
 
