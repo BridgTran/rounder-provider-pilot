@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,6 +17,12 @@ import { inviteTeamMember } from "@/lib/organisation.functions";
 import { disciplines, emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 import { compareByPreferencesThenCode } from "@/lib/candidate-order";
+import { listCandidateNotes, saveCandidateNote } from "@/lib/provider-review.functions";
+import { filterConsidered } from "@/lib/provider-review-schema";
+import { ConsiderStar } from "@/components/CandidateConsideration";
+import { ReleasedPackages } from "@/components/ReleasedPackages";
+import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 type FeedStatus = "passive" | "active" | "revealed" | "declined";
 export const Route = createFileRoute("/_authenticated/corporate")({
     head: () => ({
@@ -143,6 +150,10 @@ function CorporateHub() {
     const [createOpen, setCreateOpen] = useState(false);
     const [editingFund, setEditingFund] = useState<ScholarshipFund | undefined>();
     const [activeFundId, setActiveFundId] = useState<string | null>(null);
+    const [showConsideredOnly, setShowConsideredOnly] = useState(false);
+    const [shortlistCode, setShortlistCode] = useState<string | null>(null);
+    const readNotes = useServerFn(listCandidateNotes);
+    const writeNote = useServerFn(saveCandidateNote);
     const studentsQuery = useQuery({ queryKey: ["students"], queryFn: () => listStudents() });
     const dashboardQuery = useQuery({
         queryKey: ["provider-dashboard"],
@@ -152,6 +163,16 @@ function CorporateHub() {
     const dashboard = dashboardQuery.data;
     const funds = useMemo(() => dashboard?.scholarships ?? [], [dashboard?.scholarships]);
     const appliedFund = funds.find((f) => f.id === activeFundId && f.status === "active");
+    const notesQuery = useQuery({ queryKey: ["candidate-notes", appliedFund?.id], queryFn: () => readNotes({ data: { fundId: appliedFund?.id ?? "" } }), enabled: !!appliedFund });
+    useEffect(() => { if (notesQuery.error) toast.error(notesQuery.error.message); }, [notesQuery.error]);
+    const notesByStudent = new Map((notesQuery.data ?? []).map((note) => [note.student_id, note]));
+    const consideredIds = new Set((notesQuery.data ?? []).filter((note) => note.considered).map((note) => note.student_id));
+    const starMutation = useMutation({
+      mutationFn: (data: { fundId: string; studentId: string; considered: boolean }) => writeNote({ data }),
+      onSuccess: async (_, data) => { await queryClient.invalidateQueries({ queryKey: ["candidate-notes", data.fundId] }); },
+      onError: (error) => toast.error(error.message),
+    });
+    const toggleStar = (studentId: string) => { if (appliedFund) starMutation.mutate({ fundId: appliedFund.id, studentId, considered: !consideredIds.has(studentId) }); };
     const eligibleQuery = useQuery({ queryKey: ["active-fund-eligible", appliedFund?.id, appliedFund?.version], queryFn: () => fundEligibilityResults({ data: { rules: appliedFund?.rules ?? emptyFundRules(), discipline: appliedFund?.discipline ?? "All Disciplines", lifeLoad: appliedFund?.lifeLoad ?? [] } }), enabled: !!appliedFund });
     const matches = useMemo(() => dashboard?.matches ?? [], [dashboard?.matches]);
     const counts = applicationCounts(matches);
@@ -227,6 +248,7 @@ function CorporateHub() {
         }
         return rankCandidates(students, criteria);
     }, [students, selectedDisciplines, visa, yearLevel, selectedStudyModes, selectedStudyLoads, targetGpa, lifeLoad, appliedFund, eligibleQuery.data]);
+    const visibleRanked = filterConsidered(ranked, consideredIds, !!appliedFund && showConsideredOnly);
     const studentByCode = (code: string) => students.find((s) => s.candidateCode === code);
     const matchFor = (code: string) => {
         const student = studentByCode(code);
@@ -243,7 +265,7 @@ function CorporateHub() {
             return;
         }
         if (!appliedFund) { toast.error("Choose an active fund first"); return; }
-        requestMutation.mutate(student.id);
+        setShortlistCode(code);
     };
     const handlePublish = async (input: FundSaveInput) => {
         await publishMutation.mutateAsync(input);
@@ -340,6 +362,8 @@ function CorporateHub() {
             </ul>)}
         </section>)}
 
+      {appliedFund && <ReleasedPackages key={appliedFund.id} fundId={appliedFund.id} fundTitle={appliedFund.title} matches={matches} students={students} />}
+
       <div className={showManualFilters ? "grid gap-8 pt-2 lg:grid-cols-4 lg:gap-10" : "grid gap-8 pt-2"}>
         {/* Sidebar filters — not rendered while showManualFilters is false. */}
         {showManualFilters && (<aside className={`h-fit rounded-lg border p-6 lg:sticky lg:top-36 ${"border-charcoal/20 bg-card text-charcoal"}`}>
@@ -387,6 +411,8 @@ function CorporateHub() {
             </span>
           </div>
 
+          {appliedFund && <label className="flex items-center gap-3 text-sm font-semibold"><Switch checked={showConsideredOnly} onCheckedChange={setShowConsideredOnly} disabled={notesQuery.isPending || notesQuery.isError} aria-label="Show considered only" />Show considered only</label>}
+
           {studentsQuery.isLoading && (<div className="panel-light p-8 text-center">
               <p className="text-sm font-bold text-charcoal">Loading the live candidate registry…</p>
             </div>)}
@@ -402,7 +428,8 @@ function CorporateHub() {
               </p>
             </div>)}
 
-          {ranked.map((result) => {
+          {appliedFund && showConsideredOnly && visibleRanked.length === 0 && ranked.length > 0 && <p className="py-6 text-sm text-muted-foreground">No considered candidates for this fund yet.</p>}
+          {visibleRanked.map((result) => {
             const c = result.student as CandidateRecord;
             const status = statusOf(c.candidateCode);
             const match = matchFor(c.candidateCode);
@@ -424,6 +451,7 @@ function CorporateHub() {
                     <p className={`text-xs ${"text-muted-foreground/70"}`}>{c.uni}</p>
                   </div>
                   <div className="flex flex-col items-end text-right">
+                    {appliedFund && <ConsiderStar considered={consideredIds.has(c.id)} disabled={starMutation.isPending || notesQuery.isPending || notesQuery.isError} onToggle={() => toggleStar(c.id)} />}
                     {appliedFund ? <span className="text-sm font-bold text-charcoal">Meets {eligibleQuery.data?.find((r) => r.student_id === c.id)?.preferences_met ?? 0} of {eligibleQuery.data?.find((r) => r.student_id === c.id)?.preferences_total ?? 0} preferences</span> : <span className="text-xs text-muted-foreground">Select a fund to check eligibility</span>}
                   </div>
                 </div>
@@ -438,13 +466,6 @@ function CorporateHub() {
                       ⚡ Frontline pressure boost
                     </span>)}
                 </div>
-
-                {c.endorsement && <blockquote className={`mt-4 rounded-2xl border-l-4 border-lime p-4 ${"bg-secondary/60"}`}>
-                  <p className={`text-sm italic ${"text-secondary-foreground"}`}>“{c.endorsement}”</p>
-                  <footer className={`mt-2 text-xs font-bold ${"text-muted-foreground"}`}>
-                    ✓ Verified — {c.endorser}
-                  </footer>
-                </blockquote>}
 
                 {revealed && identity && (<div className={`mt-4 rounded-2xl border-2 p-4 ${"border-lime bg-lime/10"}`}>
                     <p className={`eyebrow flex items-center gap-2 ${"text-charcoal"}`}>
@@ -494,7 +515,8 @@ function CorporateHub() {
         </section>
       </div>
 
-      <CaseStudyDrawer candidate={caseStudy} fund={appliedFund ?? null} canShortlist={!!appliedFund && !requestMutation.isPending} application={caseStudy ? matchFor(caseStudy.code) ?? null : null} onClose={() => setCaseStudy(null)} onShortlist={requestMatch}/>
+      <CaseStudyDrawer candidate={caseStudy} fund={appliedFund ?? null} canShortlist={!!appliedFund && !requestMutation.isPending} application={caseStudy ? matchFor(caseStudy.code) ?? null : null} onClose={() => setCaseStudy(null)} onShortlist={requestMatch} considered={caseStudy ? consideredIds.has(caseStudy.studentId) : false} savedNote={caseStudy ? notesByStudent.get(caseStudy.studentId)?.note ?? "" : ""} notesReady={!notesQuery.isPending && !notesQuery.isError} starPending={starMutation.isPending} onToggleStar={toggleStar}/>
+      <AlertDialog open={shortlistCode !== null} onOpenChange={(open) => { if (!open) setShortlistCode(null); }}><AlertDialogContent className="z-[60] w-[calc(100%-2rem)]"><AlertDialogHeader><AlertDialogTitle>Shortlist candidate?</AlertDialogTitle><AlertDialogDescription>Shortlisting asks Rounder to contact this student and collect their paperwork. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { const student = shortlistCode ? studentByCode(shortlistCode) : undefined; if (student && appliedFund) requestMutation.mutate(student.id); }}>Continue</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
 
       {createOpen && <CreateOpportunityModal key={editingFund?.id ?? "new"} fund={editingFund} open={createOpen} onOpenChange={setCreateOpen} onPublish={handlePublish}/>}
       </div>

@@ -5,6 +5,7 @@ import { describeRule } from "@/lib/rule-wording";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ConsiderStar, PrivateCandidateNotes } from "@/components/CandidateConsideration";
 
 export type DrawerCandidate = {
   studentId: string;
@@ -37,6 +38,11 @@ export function CaseStudyDrawer({
   application,
   onClose,
   onShortlist,
+  considered,
+  savedNote,
+  notesReady,
+  starPending,
+  onToggleStar,
 }: {
   candidate: DrawerCandidate | null;
   fund: ScholarshipFund | null;
@@ -44,6 +50,11 @@ export function CaseStudyDrawer({
   application: ProviderMatch | null;
   onClose: () => void;
   onShortlist: (code: string) => void;
+  considered: boolean;
+  savedNote: string;
+  notesReady: boolean;
+  starPending: boolean;
+  onToggleStar: (studentId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [showRequired, setShowRequired] = useState(false);
@@ -143,6 +154,9 @@ export function CaseStudyDrawer({
           </section>
 
           <p className="rounded-xl bg-secondary/60 p-3 text-xs text-secondary-foreground">University, name and contact details are withheld until Rounder releases the checked application.</p>
+
+          {fund && <div className="flex items-center gap-3"><ConsiderStar considered={considered} disabled={starPending || !notesReady} onToggle={() => onToggleStar(candidate.studentId)} /><span className="text-sm text-muted-foreground">{considered ? "On your consider list" : "Add to consider list"}</span></div>}
+          {fund && notesReady && <PrivateCandidateNotes key={`${fund.id}:${candidate.studentId}:${savedNote}`} fundId={fund.id} studentId={candidate.studentId} savedNote={savedNote} />}
 
           {identity && <section className="border-t border-border pt-4"><h3 className="text-lg">Released contact details</h3><dl className="mt-3 space-y-2 text-sm"><div><dt className="text-muted-foreground">Legal name</dt><dd className="break-words">{identity.legalName}</dd></div><div><dt className="text-muted-foreground">Email</dt><dd className="break-all">{identity.email}</dd></div><div><dt className="text-muted-foreground">Phone</dt><dd className="break-words">{identity.phone}</dd></div></dl></section>}
           <Button

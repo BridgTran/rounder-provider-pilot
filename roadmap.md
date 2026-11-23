@@ -1,5 +1,10 @@
 # Current work
 
+## Provider consideration and released packages
+- [x] Add fund-scoped stars, private notes, considered-only filtering and shortlist confirmation.
+- [x] Add released packages with approved statements and authorized private downloads; no statements in anonymous cards/drawer.
+- [x] Verify 22 tests and automatic typecheck/build; signed-in notes save/reload, card/drawer stars preserve notes, considered filtering, confirmation/cancel, released package reads approved statements and five documents, real private PDF download, desktop/mobile. Temporary student, application, notes, reviews and five private files removed. No database schema changes.
+
 ## Admin paperwork review
 - [x] Add pending-first statement review with edited approval/rejection through existing admin RPCs.
 - [x] Add per-application document panels, authenticated 60-second viewing links and checked/rejected reviews.
