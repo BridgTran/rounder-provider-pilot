@@ -11,6 +11,7 @@ import { studentInviteAction, studentGetIntake, studentUpdateIntake } from "@/li
 import { collectEquityContext, intakeSchema, type IntakeInput } from "@/lib/invite-schema";
 import { australianStates, studentLevels, disciplines } from "@/lib/fund-schema";
 import { australianUniversities } from "@/lib/universities";
+import { StudentPaperwork } from "@/components/StudentPaperwork";
 
 const inviteOptions = (token: string) => queryOptions({ queryKey: ["student-invite", token], queryFn: () => studentInviteAction({ data: { token, action: "read" } }), retry: false });
 export const Route = createFileRoute("/invite/$token")({
@@ -90,6 +91,10 @@ function StudentInvitation() {
     onSuccess: (state) => {
       if (state.deleted) { setDeleted(true); client.setQueryData(["student-invite", token], state); }
       else client.setQueryData(["student-invite", token], state);
+      if (!state.deleted) {
+        void client.invalidateQueries({ queryKey: ["student-documents", token] });
+        void client.invalidateQueries({ queryKey: ["student-snippets", token] });
+      }
     }, onError: (error) => toast.error(error.message),
   });
   if (deleted) return <div className="mx-auto max-w-xl px-4 py-12"><h1 className="text-2xl">Your data has been deleted</h1><p className="mt-4 text-muted-foreground">Your profile, contact details and applications have been removed. This invitation is no longer active.</p></div>;
@@ -130,6 +135,7 @@ function StudentInvitation() {
       {data.requests.map((request) => <article key={request.id} className="rounded-lg border border-border p-5"><h2 className="text-lg">{request.fundTitle ?? request.organisation}</h2><p className="mt-2 text-sm capitalize text-muted-foreground">{request.stage}</p>
         {request.stage === "invited" ? <div className="mt-4 space-y-4"><p className="text-sm text-muted-foreground">By accepting, you agree that Rounder may check your paperwork and pass your application, including your name and contact details, to the provider.</p><div className="flex flex-wrap gap-3"><Button disabled={action.isPending} onClick={() => action.mutate({ token, action: "respond", payload: { matchId: request.id, decision: "accept" } })}>Accept and apply</Button><Button variant="outline" disabled={action.isPending} onClick={() => action.mutate({ token, action: "respond", payload: { matchId: request.id, decision: "decline" } })}>Decline</Button></div></div> : request.stage === "released" ? <div className="mt-4 space-y-2 text-sm"><p>{request.organisation}</p><p>{request.contactPerson}</p><p className="break-all">{request.email}</p><p className="text-muted-foreground">Your application package, including your name and contact details, has been shared with this provider.</p></div> : <p className="mt-3 text-sm text-muted-foreground">{{ accepted: "Thanks. Rounder will contact you with the paperwork list and check it before anything is sent.", submitted: "Rounder is checking your paperwork.", returned: "Rounder has asked for changes to your paperwork.", checked: "Your application has been checked and will be passed to the provider.", declined: "You declined. Your details were not shared." }[request.stage]}</p>}
       </article>)}
+      <StudentPaperwork token={token} />
     </section>}
     <section className="mt-12 border-t border-border pt-6"><h2 className="text-lg">Delete my data</h2>{confirmDelete ? <div className="mt-4 space-y-4"><p className="text-sm text-muted-foreground">Permanently remove your profile, contact details and all applications?</p><div className="flex gap-3"><Button variant="destructive" disabled={action.isPending} onClick={() => action.mutate({ token, action: "delete" })}>Confirm deletion</Button><Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button></div></div> : <Button variant="outline" className="mt-4" onClick={() => setConfirmDelete(true)}>Delete my data</Button>}</section>
   </div>;

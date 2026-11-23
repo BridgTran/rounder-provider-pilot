@@ -11,6 +11,8 @@
 
 ## Architecture
 
+- Student paperwork uses invitation-authorized RPCs for editability and registration; only authorized server functions upload private objects, remove replaced objects, and roll back unregistered uploads. Why: browser state cannot grant storage access or leak document paths.
+
 - Scholarship writes use an organisation-member-scoped transactional RPC with optimistic version checks and fresh attestation on activation and subsequent saves; triggers snapshot every save into immutable versions and events. Why: direct writes must not bypass authority confirmation or overwrite history.
 - Eligibility uses a private SQL evaluator shared by discovery and fund-scoped shortlisting; Required rules gate and Preferred rules only contribute counts. Why: client ranking must not bypass fund rules.
 - Deed PDFs use immutable provider-prefixed objects in private storage; short-lived signed links are owner-authorized. Why: historical versions must retain their original private document.

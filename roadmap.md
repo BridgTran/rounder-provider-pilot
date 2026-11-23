@@ -1,5 +1,10 @@
 # Current work
 
+## Student paperwork
+- [x] Add acceptance-gated statements and document rows using existing RPCs only; no database/schema changes.
+- [x] Enforce private server uploads, type/size limits, replacement and rollback cleanup.
+- [x] Verify real consent/intake → shortlist/invite → accept → statements save/reread → upload/replace/reread → submitted window closes → deletion; desktop/mobile checked, 39 tests and automatic checks pass. Temporary rows and files removed.
+
 ## Intake wording and required campus state
 - [x] Reword the first-degree completion-year question, add its helper text, and expand the further-study question.
 - [x] Make campus state required in the form with a short in-page error; schema, database and matching logic untouched.
