@@ -6,7 +6,7 @@ import { applicationCounts, applicationStageLabels } from "@/lib/application-sch
 import { Copy, UserPlus } from "lucide-react";
 import { createStudentInvite } from "@/lib/invite.functions";
 import { Input } from "@/components/ui/input";
-import { CaseStudyDrawer } from "@/components/CaseStudyDrawer";
+import { CaseStudyDrawer, type DrawerCandidate } from "@/components/CaseStudyDrawer";
 import { CreateOpportunityModal } from "@/components/CreateOpportunityModal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,16 +16,6 @@ import { inviteTeamMember } from "@/lib/organisation.functions";
 import { disciplines, emptyFundRules, type FundSaveInput } from "@/lib/fund-schema";
 import { rankCandidates, type FilterCriteria, type StudyMode } from "@/lib/irto";
 import { compareByPreferencesThenCode } from "@/lib/candidate-order";
-type DrawerCandidate = {
-    code: string;
-    degree: string;
-    year: string;
-    grit: number;
-    uni: string;
-    endorsement: string;
-    endorser: string;
-    traits: string[];
-};
 type FeedStatus = "passive" | "active" | "revealed" | "declined";
 export const Route = createFileRoute("/_authenticated/corporate")({
     head: () => ({
@@ -482,14 +472,13 @@ function CorporateHub() {
 
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Button variant="outline" onClick={() => setCaseStudy({
+                    studentId: c.id,
                     code: c.candidateCode,
                     degree: c.degree,
-                    year: c.year,
-                    grit: result.adjustedGpa,
-                    uni: c.uni,
-                    endorsement: c.endorsement,
-                    endorser: c.endorser,
-                    traits: c.traits,
+                    discipline: c.discipline,
+                    studyLoad: c.studyLoad,
+                    studyMode: c.studyMode,
+                    rawGpa: c.rawGpa,
                 })} className={`h-auto min-h-9 whitespace-normal text-xs font-bold ${"border-charcoal/25 text-charcoal hover:bg-charcoal/5"}`}>
                     ⚙️ View Full Anonymous Case Study
                   </Button>
@@ -505,7 +494,7 @@ function CorporateHub() {
         </section>
       </div>
 
-      <CaseStudyDrawer candidate={caseStudy} canShortlist={!!appliedFund && !requestMutation.isPending} application={caseStudy ? matchFor(caseStudy.code) ?? null : null} onClose={() => setCaseStudy(null)} onShortlist={requestMatch}/>
+      <CaseStudyDrawer candidate={caseStudy} fund={appliedFund ?? null} canShortlist={!!appliedFund && !requestMutation.isPending} application={caseStudy ? matchFor(caseStudy.code) ?? null : null} onClose={() => setCaseStudy(null)} onShortlist={requestMatch}/>
 
       {createOpen && <CreateOpportunityModal key={editingFund?.id ?? "new"} fund={editingFund} open={createOpen} onOpenChange={setCreateOpen} onPublish={handlePublish}/>}
       </div>

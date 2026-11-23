@@ -225,3 +225,19 @@ export interface PublishScholarshipInput {
   discipline: string;
 }
 
+
+export const fundCandidateRuleResultsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { fundId: string; studentId: string }) => {
+    const uuid = /^[0-9a-f-]{36}$/i;
+    if (!uuid.test(input.fundId) || !uuid.test(input.studentId)) throw new Error("Invalid fund or candidate");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase.rpc("fund_candidate_rule_results", {
+      p_fund_id: data.fundId,
+      p_student_id: data.studentId,
+    });
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({ ruleKey: r.rule_key, preferred: r.preferred, met: r.met }));
+  });
