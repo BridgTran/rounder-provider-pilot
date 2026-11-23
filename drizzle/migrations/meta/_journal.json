@@ -120,6 +120,13 @@
       "when": 1795405163482,
       "tag": "0016_student_documents_and_released_packages",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795406011126,
+      "tag": "0017_student_statements_after_acceptance",
+      "breakpoints": true
     }
   ]
 }
